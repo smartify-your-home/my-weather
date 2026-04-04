@@ -5,7 +5,7 @@
   "config_flow": true,
   "documentation": "https://github.com/smartify-your-home/my-weather#readme",
   "issue_tracker": "https://github.com/smartify-your-home/my-weather/issues",
-  "codeowners": ["@raphaelforsthuber"],
+  "codeowners": ["@smartify-your-home"],
   "iot_class": "cloud_polling",
   "loggers": ["my_weather"]
 }

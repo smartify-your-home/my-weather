@@ -19,6 +19,9 @@
       "required": "At least one API key is required.",
       "invalid_lat": "Invalid latitude (must be between –90 and 90).",
       "invalid_lon": "Invalid longitude (must be between –180 and 180)."
+    },
+    "abort": {
+      "already_configured": "This location is already configured."
     }
   }
 }

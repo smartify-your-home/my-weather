@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local Home Assistant data (may contain API keys)
+.storage/
+secrets.yaml
+*.env
+.env*
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

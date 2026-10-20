@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
+try:
+    from homeassistant.config_entries import ConfigFlowResult as FlowResult
+except ImportError:  # Home Assistant < 2024.4
+    from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import selector
 
 from .const import (
@@ -21,6 +24,7 @@ CONF_API_KEY_3 = "api_key_3"
 CONF_API_KEY_4 = "api_key_4"
 
 _TEXT_SELECTOR = selector({"text": {"type": "text"}})
+_KEY_SELECTOR = selector({"text": {"type": "password"}})
 
 
 class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -28,6 +32,7 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         errors = {}
+        defaults = dict(user_input or {})
 
         if user_input is not None:
 
@@ -78,11 +83,15 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title = f"Meteonomiqs ({lat}, {lon})"
                 return self.async_create_entry(title=title, data=data)
 
+        # Pre-fill the location with the Home Assistant home location
+        defaults.setdefault(CONF_LATITUDE, self.hass.config.latitude)
+        defaults.setdefault(CONF_LONGITUDE, self.hass.config.longitude)
+
         data_schema = vol.Schema({
-            vol.Required(CONF_API_KEY_1): _TEXT_SELECTOR,
-            vol.Optional(CONF_API_KEY_2): _TEXT_SELECTOR,
-            vol.Optional(CONF_API_KEY_3): _TEXT_SELECTOR,
-            vol.Optional(CONF_API_KEY_4): _TEXT_SELECTOR,
+            vol.Required(CONF_API_KEY_1): _KEY_SELECTOR,
+            vol.Optional(CONF_API_KEY_2): _KEY_SELECTOR,
+            vol.Optional(CONF_API_KEY_3): _KEY_SELECTOR,
+            vol.Optional(CONF_API_KEY_4): _KEY_SELECTOR,
             vol.Required(CONF_LATITUDE): _TEXT_SELECTOR,
             vol.Required(CONF_LONGITUDE): _TEXT_SELECTOR,
             vol.Optional(CONF_LANGUAGE, default=DEFAULT_LANGUAGE): selector({
@@ -97,6 +106,12 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             }),
         })
+
+        # Keep what the user typed after a validation error
+        data_schema = self.add_suggested_values_to_schema(
+            data_schema,
+            {k: str(v) for k, v in defaults.items() if v is not None},
+        )
 
         return self.async_show_form(
             step_id="user",

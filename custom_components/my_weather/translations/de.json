@@ -19,6 +19,9 @@
       "required": "Mindestens ein API-Schlüssel erforderlich.",
       "invalid_lat": "Breitengrad ungültig (–90 bis 90).",
       "invalid_lon": "Längengrad ungültig (–180 bis 180)."
+    },
+    "abort": {
+      "already_configured": "Dieser Standort ist bereits eingerichtet."
     }
   }
 }

@@ -19,6 +19,9 @@
       "required": "Se requiere al menos una clave API.",
       "invalid_lat": "Latitud no válida (debe estar entre –90 y 90).",
       "invalid_lon": "Longitud no válida (debe estar entre –180 y 180)."
+    },
+    "abort": {
+      "already_configured": "Esta ubicación ya está configurada."
     }
   }
 }

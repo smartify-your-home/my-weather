@@ -1,0 +1,5 @@
+update:
+  name: Update weather data
+  description: >-
+    Fetch fresh data from the Meteonomiqs API. The integration does not poll
+    automatically, so each call uses one request of your API quota.

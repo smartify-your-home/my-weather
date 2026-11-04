@@ -16,11 +16,11 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 
 - Up to **4 API keys** with automatic round-robin rotation on rate-limit (HTTP 429)
 - **Manual update** via the `my_weather.update` service — full control over your API quota
-- **Optional scheduled updates**: up to four configurable HH:MM times each day (Home Assistant local timezone)
+- **Optional scheduled updates**: up to four configurable full hours (HH:00) per day (Home Assistant local timezone)
 - **Atomic forecast replacement**: no temporary clearing when API keys rotate or refreshes fail
 - **Timestamp-aligned hourly forecast**: no fallback to the wrong hour if cached data expires
 - Persistent cache: data survives HA restarts without an extra API call
-- Current index recalculated every 5 minutes from cached data (no extra call)
+- Current index recalculated every minute from cached data (no extra call)
 - Supports **DE / EN / FR / IT / ES** weather descriptions from the API
 - Full `weather` entity + individual sensor entities
 
@@ -92,11 +92,15 @@ Get your API key at https://www.meteonomiqs.com/weather-api/#heading-price-packa
 
 ## Scheduled updates and hourly rollover
 
-Open **Settings → Devices & Services → Meteonomiqs → Configure** and enter between 1 and 4 times in 24-hour `HH:MM` format (e.g. `06:00`, `12:00`). Leave every field empty to disable scheduled fetching. Changes take effect after an integration reload. All times use the Home Assistant local timezone. `my_weather.update` continues to work independently.
+Open **Settings → Devices & Services → Meteonomiqs → Configure** and enter up to four **full-hour publication times** in local 24-hour `HH:00` format (for example `06:00` and `14:00`). Leave all fields empty to disable scheduled fetching.
 
-**Quota warning:** 4 updates/day ≈ 120–124 API requests per month. With one free key (50/month), limit scheduling to approximately one request per day, or add more keys. Existing manual automations should be disabled if you do not want additional requests.
+For each scheduled publication at **14:00**, the integration **fetches at 13:55** and holds the downloaded response without changing any sensor values. At **14:00**, the forecast hour shifts and the complete new forecast is published **in one coordinator update**. The old snapshot remains visible until that moment. This prevents an old-forecast hour shift followed by a second API-revision jump.
 
-Hourly forecast offsets (`+0h`, `+1h`, etc.) are checked against timestamp boundaries each minute. During the first **10 minutes after an hourly boundary**, a rollover based solely on older cached data is postponed to allow a new API response to replace the snapshot in one step. If no update arrives, the rollover happens after this grace period. This deliberately retains the previous forecast for at most 10 minutes. The transition from `+2h` to `+1h` uses the *same forecast hour's value* from the cached snapshot, and a successful fetch swaps in the new complete response together. If the cached forecast no longer covers the current hour, the current and relative-hour sensors become unavailable rather than incorrectly resetting to the first (stale) hour. Real forecast changes supplied by the provider may still cause legitimate value changes.
+If prefetch fails, the regular hourly rollover still occurs using cached data. If the API is slow and responds after the intended hour, the new snapshot is published once it arrives (a second transition is possible in this unusual case). **Manual `my_weather.update` calls always publish immediately** and override any staged response. The usual hourly time-shift continues on hours without scheduled fetching. All times use Home Assistant's configured local timezone.
+
+**Quota warning:** Four updates per day use approximately 120–124 successful requests per month, which exceeds the 50-call allowance of one free API key. Disable any existing update automations if you do not want additional API requests.
+
+If the cached forecast no longer covers the current hour, affected sensors return `unknown` instead of incorrectly resetting to the first (stale) forecast hour. Genuine provider forecast revisions can still change values.
 
 ## Entities
 

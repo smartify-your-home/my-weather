@@ -3,8 +3,8 @@
 ## Mandatory read before edits
 Read this file, README.md, CHANGELOG.md, custom_components/my_weather/manifest.json,
 custom_components/my_weather/config_flow.py, __init__.py, coordinator.py, sensor.py,
-weather.py, secrets.py, const.py, services.yaml, strings.json and translations/*.
-Read all relevant tests before changing functionality. Compare the default branch
+weather.py, secrets.py, timing.py, const.py, services.yaml, strings.json and translations/*.
+Read all relevant tests, RELEASE_NOTES.md, and CONTRIBUTING.md before changing functionality. Compare the default branch
 and recent pull requests to avoid reintroducing removed regressions.
 
 ## Non-negotiable behavior

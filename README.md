@@ -15,7 +15,7 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 ## Features
 
 - Up to **4 API keys** with automatic round-robin rotation on rate-limit (HTTP 429)
-- API keys can be referenced by name from Home Assistant's `/config/secrets.yaml`, with secret values kept out of the integration configuration.
+- API keys are automatically loaded from fixed names in Home Assistant's `/config/secrets.yaml`, with no secret names entered in the integration dialog.
 - **Manual update** via the `my_weather.update` service — full control over your API quota
 - **Optional scheduled updates**: up to four configurable full hours (HH:00) per day (Home Assistant local timezone)
 - **Atomic forecast replacement**: no temporary clearing when API keys rotate or refreshes fail
@@ -81,35 +81,32 @@ Go to **Settings → Devices & Services → Add Integration** and search for **M
 
 | Field | Description |
 |---|---|
-| API Key 1 | Required. Your Meteonomiqs API key. |
-| API Key 2–4 | Optional. Additional keys for higher monthly quota. |
+| API Key 1 | Optional when using automatic secrets.yaml detection. |
+| API Key 2–4 | Optional direct keys for legacy/manual setup; not needed with secrets.yaml. |
 | Latitude | Location latitude (e.g. `48.2083`) |
 | Longitude | Location longitude (e.g. `16.3731`) |
 | Language | Language for weather descriptions: DE / EN / FR / IT / ES |
 
 Get your API key at https://www.meteonomiqs.com/weather-api/#heading-price-packages_2
 
-## API keys from secrets.yaml
+## Fixed API keys from secrets.yaml
 
-The integration supports **1–4 separate API keys** stored in `/config/secrets.yaml`. For example:
+The integration **automatically discovers** one to four API keys from Home Assistant's `/config/secrets.yaml`, using these **fixed names**:
 
 ```yaml
 # /config/secrets.yaml
 my_weather_api_1: "YOUR_FIRST_API_KEY"
-my_weather_api_2: "YOUR_SECOND_API_KEY"
-my_weather_api_3: "YOUR_THIRD_API_KEY"
-my_weather_api_4: "YOUR_FOURTH_API_KEY"
+my_weather_api_2: "YOUR_SECOND_API_KEY" # optional
+my_weather_api_3: "YOUR_THIRD_API_KEY"  # optional
+my_weather_api_4: "YOUR_FOURTH_API_KEY" # optional
 ```
 
-In the **integration setup**, leave the direct API key fields empty and enter these four **reference names** in the `Secret name 1–4` fields (e.g. `my_weather_api_1`). Do **not** enter `!secret` or the API key value in those fields. The integration resolves the entries on the Home Assistant host when it starts. Only reference names are saved in the configuration entry; values are loaded in memory. A missing or empty entry is reported as a configuration error without logging the API key itself.
+**Only one key is required.** Any missing optional slot is skipped, even if the numbering has gaps: `my_weather_api_1` and `my_weather_api_3` work together without entries 2 and 4. The integration loads the available keys in numerical order and rotates between them on HTTP 429. Duplicate key values are used only once.
 
-For an already configured integration, go to **Devices & Services → Meteonomiqs → Configure** and enter the secret names to switch the source. Changes reload the integration; after changing a value in `secrets.yaml`, reload the integration to load the new keys. Old manually entered key values remain in the original config entry for backwards compatibility, so for full removal of old saved secrets you must remove/re-create that config entry.
+Do not enter secret names or `!secret` in the integration UI: **no API-key name input is required**. Leave all direct API-key fields empty when using `secrets.yaml`. If no fixed secrets are present, the existing manually entered API keys continue to work for compatibility. An existing but empty or invalid fixed secret entry triggers a configuration error, never a fallback to a different key.
 
-You may configure **either** direct API key values **or** secret references during initial setup; do not mix the two. All four keys retain the same automatic HTTP 429 rotation.
+After editing `secrets.yaml`, reload the integration to reread its keys. Do not commit `secrets.yaml` to Git. Older plaintext keys already stored in a config entry are not automatically removed when fixed secrets are used; recreating an existing entry is required if you want to remove those stored values.
 
-
-
----
 
 ## Scheduled updates and hourly rollover
 

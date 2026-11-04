@@ -19,7 +19,7 @@ from .const import (
     CONF_UPDATE_TIMES,
 )
 from .coordinator import MeteonomiqsDataUpdateCoordinator
-from .secrets import async_load_secret_keys, SecretKeyError
+from .secrets import async_load_fixed_secret_keys, SecretKeyError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,20 +34,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data.setdefault(DOMAIN, {})
 
-    # Existing plaintext API keys are supported for backwards compatibility.
-    # Named secrets take priority and are never written into the config entry.
-    secret_names = entry.options.get(
-        CONF_API_KEY_SECRETS, entry.data.get(CONF_API_KEY_SECRETS, []),
-    )
-    if secret_names:
-        try:
-            api_keys = await async_load_secret_keys(hass, secret_names)
-        except SecretKeyError as err:
-            raise ConfigEntryNotReady(
-                "Meteonomiqs: cannot resolve configured secrets.yaml API key names"
-            ) from err
-    else:
-        api_keys = entry.data.get(CONF_API_KEYS)
+    # Fixed secret slots are preferred when present. Missing slots are optional.
+    try:
+        api_keys = await async_load_fixed_secret_keys(hass)
+    except SecretKeyError as err:
+        raise ConfigEntryNotReady(
+            "Meteonomiqs: invalid fixed API key in secrets.yaml"
+        ) from err
+    if not api_keys:
+        # Keep older manually configured entries working unchanged.
+        api_keys = entry.data.get(CONF_API_KEYS) or []
         if not api_keys:
             legacy = entry.data.get(CONF_API_KEY)
             api_keys = [legacy] if legacy else []

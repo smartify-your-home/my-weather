@@ -9,6 +9,8 @@ CONF_LONGITUDE = "longitude"
 CONF_LANGUAGE = "language"
 
 DEFAULT_LANGUAGE = "de"
+CONF_UPDATE_TIMES = "update_times"
+DEFAULT_UPDATE_TIMES = []
 
 PLATFORMS = [
     Platform.WEATHER,

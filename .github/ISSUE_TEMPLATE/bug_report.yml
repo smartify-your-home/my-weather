@@ -1,0 +1,38 @@
+name: Bug report
+description: Report an integration issue without including API secrets.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: "Never paste real API keys, secrets.yaml values, or private HA credentials."
+  - type: input
+    id: version
+    attributes:
+      label: my-weather version
+      placeholder: "e.g. 0.1.3.1"
+    validations:
+      required: true
+  - type: input
+    id: ha
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: sanitized
+    attributes:
+      label: Sanitized logs (optional)
+      description: Remove all keys, private addresses and tokens.

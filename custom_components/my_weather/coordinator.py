@@ -156,7 +156,8 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
             return False
         # At a scheduled full hour the staged response is published as one update.
         if self._pending_target and dt_util.utcnow() >= self._pending_target:
-            return self.async_publish_staged(self._pending_target)
+            if self.async_publish_staged(self._pending_target):
+                return True
         updated = dict(self.data)
         updated["current_index"] = new_index
         updated["current"] = hourly[new_index] if new_index is not None else None
@@ -181,6 +182,7 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
                         current=snapshot["hourly"][index] if index is not None else None)
         self.data = snapshot
         self.async_set_updated_data(snapshot)
+        self.hass.async_create_task(self._async_save_stats())
         return True
 
     async def async_prefetch(self, target):
@@ -241,7 +243,8 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         if raw is None:
             raise UpdateFailed("Meteonomiqs: all API keys returned HTTP 429")
 
-        self.monthly_call_counter += 1
+        if not isinstance(raw, dict):
+            raise UpdateFailed("Meteonomiqs: unexpected API response format")
         hourly = raw.get("hourly") if isinstance(raw.get("hourly"), list) else []
 
         if not hourly or not any(isinstance(h, dict) and self._parse_utc(h.get("from")) and self._parse_utc(h.get("to")) for h in hourly):
@@ -313,5 +316,6 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         }
         # Save counters without replacing the published cached forecast.
         self.last_successful_update = now
+        self.monthly_call_counter += 1
         await self._async_save_stats()
         return new_data

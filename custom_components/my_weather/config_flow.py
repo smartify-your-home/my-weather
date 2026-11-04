@@ -7,11 +7,13 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import selector
+from .secrets import async_load_secret_keys, SecretKeyError
 
 from .const import (
     DOMAIN,
     CONF_API_KEY,
     CONF_API_KEYS,
+    CONF_API_KEY_SECRETS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_LANGUAGE,
@@ -23,6 +25,7 @@ CONF_API_KEY_1 = "api_key_1"
 CONF_API_KEY_2 = "api_key_2"
 CONF_API_KEY_3 = "api_key_3"
 CONF_API_KEY_4 = "api_key_4"
+SECRET_FIELDS = tuple(f"api_secret_{i}" for i in range(1, 5))
 
 _TEXT_SELECTOR = selector({"text": {"type": "text"}})
 
@@ -51,8 +54,20 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not keys and user_input.get(CONF_API_KEY):
                 keys = [user_input[CONF_API_KEY].strip()]
 
-            if not keys:
-                errors[CONF_API_KEY_1] = "required"
+            secret_names = list(dict.fromkeys(
+                str(user_input.get(field) or "").strip()
+                for field in SECRET_FIELDS
+                if str(user_input.get(field) or "").strip()
+            ))
+            if secret_names and keys:
+                errors["base"] = "choose_key_source"
+            elif secret_names:
+                try:
+                    await async_load_secret_keys(self.hass, secret_names)
+                except SecretKeyError:
+                    errors["base"] = "invalid_secrets"
+            elif not keys:
+                errors["base"] = "required"
 
             # Convert lat/lon from string to float and validate
             lat = None
@@ -80,6 +95,7 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                 data = {
                     CONF_API_KEYS: keys,
+                    CONF_API_KEY_SECRETS: secret_names,
                     CONF_LATITUDE: lat,
                     CONF_LONGITUDE: lon,
                     CONF_LANGUAGE: user_input.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
@@ -88,10 +104,11 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=title, data=data)
 
         data_schema = vol.Schema({
-            vol.Required(CONF_API_KEY_1): _TEXT_SELECTOR,
+            vol.Optional(CONF_API_KEY_1): _TEXT_SELECTOR,
             vol.Optional(CONF_API_KEY_2): _TEXT_SELECTOR,
             vol.Optional(CONF_API_KEY_3): _TEXT_SELECTOR,
             vol.Optional(CONF_API_KEY_4): _TEXT_SELECTOR,
+            **{vol.Optional(field): _TEXT_SELECTOR for field in SECRET_FIELDS},
             vol.Required(CONF_LATITUDE): _TEXT_SELECTOR,
             vol.Required(CONF_LONGITUDE): _TEXT_SELECTOR,
             vol.Optional(CONF_LANGUAGE, default=DEFAULT_LANGUAGE): selector({
@@ -130,17 +147,36 @@ class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
                     errors[field] = "invalid_time"
                 elif value not in times:
                     times.append(value)
+            secret_names = list(dict.fromkeys(
+                str(user_input.get(field) or "").strip()
+                for field in SECRET_FIELDS
+                if str(user_input.get(field) or "").strip()
+            ))
+            if secret_names:
+                try:
+                    await async_load_secret_keys(self.hass, secret_names)
+                except SecretKeyError:
+                    errors["base"] = "invalid_secrets"
             if not errors:
-                return self.async_create_entry(
-                    title="",
-                    data={CONF_UPDATE_TIMES: sorted(times)},
-                )
+                options = dict(self.config_entry.options)
+                options[CONF_UPDATE_TIMES] = sorted(times)
+                if secret_names:
+                    options[CONF_API_KEY_SECRETS] = secret_names
+                return self.async_create_entry(title="", data=options)
 
         saved = self.config_entry.options.get(CONF_UPDATE_TIMES, [])
+        existing_names = self.config_entry.options.get(
+            CONF_API_KEY_SECRETS,
+            self.config_entry.data.get(CONF_API_KEY_SECRETS, []),
+        )
         fields = {}
         for index in range(1, 5):
             default = saved[index - 1] if index <= len(saved) else ""
             fields[vol.Optional(f"update_time_{index}", default=default)] = _TEXT_SELECTOR
+
+        for index, field in enumerate(SECRET_FIELDS):
+            default = existing_names[index] if index < len(existing_names) else ""
+            fields[vol.Optional(field, default=default)] = _TEXT_SELECTOR
 
         return self.async_show_form(
             step_id="init",

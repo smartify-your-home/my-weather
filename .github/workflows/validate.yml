@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - 'custom_components/my_weather/**'
+      - 'tests/**'
       - '.github/workflows/validate.yml'
   pull_request:
     paths:

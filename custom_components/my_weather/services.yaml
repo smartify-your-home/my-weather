@@ -1,0 +1,7 @@
+update:
+  name: Update forecast now
+  description: >-
+    Fetch a fresh Meteonomiqs forecast immediately and publish it right away.
+    The request uses API quota and is independent of configured full-hour
+    scheduled updates. Scheduled updates fetch five minutes before the selected
+    hour and publish the whole forecast at the hour.

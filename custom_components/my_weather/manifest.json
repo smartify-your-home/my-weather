@@ -1,11 +1,15 @@
 {
   "domain": "my_weather",
   "name": "my-weather",
-  "version": "0.1.2.6",
+  "version": "0.1.3.1",
   "config_flow": true,
   "documentation": "https://github.com/smartify-your-home/my-weather#readme",
   "issue_tracker": "https://github.com/smartify-your-home/my-weather/issues",
-  "codeowners": ["@smartify-your-home"],
+  "codeowners": [
+    "@smartify-your-home"
+  ],
   "iot_class": "cloud_polling",
-  "loggers": ["my_weather"]
+  "loggers": [
+    "my_weather"
+  ]
 }

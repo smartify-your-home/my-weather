@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+
+# Local HA data and credentials
+secrets.yaml
+**/secrets.yaml
+.env
+.env.*
+!.env.example
+.storage/
+config/
+*.log
+.DS_Store

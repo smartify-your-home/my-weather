@@ -2,7 +2,7 @@
 
 A custom Home Assistant integration for the [Meteonomiqs](http://www.wetter.com) weather API. Provides current conditions, hourly forecasts, and daily forecasts as HA entities — including a full `weather` entity usable in the standard weather card.
 
-> **Important:** The Meteonomiqs free tier allows only **50 API calls per key per month**. This integration does **not** poll automatically. You must trigger updates manually via an automation.
+> **Important:** The Meteonomiqs free tier allows only **50 API calls per key per month**. Automatic polling is **disabled by default**. You can configure up to four daily refresh times in the integration options, or call `my_weather.update` manually.
 
 ---
 Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weather card to show the data called by my-weather.
@@ -15,9 +15,13 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 ## Features
 
 - Up to **4 API keys** with automatic round-robin rotation on rate-limit (HTTP 429)
+- API keys are automatically loaded from fixed names in Home Assistant's `/config/secrets.yaml`, with no secret names entered in the integration dialog.
 - **Manual update** via the `my_weather.update` service — full control over your API quota
+- **Optional scheduled updates**: up to four configurable full hours (HH:00) per day (Home Assistant local timezone)
+- **Atomic forecast replacement**: no temporary clearing when API keys rotate or refreshes fail
+- **Timestamp-aligned hourly forecast**: no fallback to the wrong hour if cached data expires
 - Persistent cache: data survives HA restarts without an extra API call
-- Current index recalculated every 5 minutes from cached data (no extra call)
+- Current index recalculated every minute from cached data (no extra call)
 - Supports **DE / EN / FR / IT / ES** weather descriptions from the API
 - Full `weather` entity + individual sensor entities
 
@@ -38,7 +42,7 @@ The integration rotates to the next key automatically when the API returns HTTP 
 
 ### Recommended Automation
 
-Since auto-polling is disabled, you control **when** to fetch. A sensible setup for 1 key (50 calls/month ≈ 1–2 per day):
+By default, auto-polling is disabled. You can set up to four scheduled fetch times under **Settings → Devices & Services → Meteonomiqs → Configure**, or use an automation as below. An example manual update for one key (50 calls/month):
 
 ```yaml
 automation:
@@ -46,13 +50,11 @@ automation:
     trigger:
       - platform: time
         at: "06:00:00"
-      - platform: time
-        at: "13:00:00"
     action:
       - service: my_weather.update
 ```
 
-With 2 keys (100 calls/month) you can update up to 3× per day, and so on. Adjust to your needs — just stay within your quota.
+Two keys permit roughly 100 calls per month. Scheduling three daily calls uses about 90–93 requests per month, leaving limited quota for manual calls or retries. Prefer the built-in full-hour schedule instead of duplicating it with automations.
 
 ---
 
@@ -61,7 +63,7 @@ With 2 keys (100 calls/month) you can update up to 3× per day, and so on. Adjus
 ### Via HACS (recommended)
 
 1. Open HACS → **Integrations** → ⋮ → **Custom repositories**
-2. Add `https://github.com/my-weather/my-weather` as type **Integration**
+2. Add `https://github.com/smartify-your-home/my-weather` as type **Integration**
 3. Install **my-weather** and restart Home Assistant
 
 ### Manual
@@ -77,15 +79,44 @@ Go to **Settings → Devices & Services → Add Integration** and search for **M
 
 | Field | Description |
 |---|---|
-| API Key 1 | Required. Your Meteonomiqs API key. |
-| API Key 2–4 | Optional. Additional keys for higher monthly quota. |
+| API Key 1 | Optional when using automatic secrets.yaml detection. |
+| API Key 2–4 | Optional direct keys for legacy/manual setup; not needed with secrets.yaml. |
 | Latitude | Location latitude (e.g. `48.2083`) |
 | Longitude | Location longitude (e.g. `16.3731`) |
 | Language | Language for weather descriptions: DE / EN / FR / IT / ES |
 
 Get your API key at https://www.meteonomiqs.com/weather-api/#heading-price-packages_2
 
----
+## Fixed API keys from secrets.yaml
+
+The integration **automatically discovers** one to four API keys from Home Assistant's `/config/secrets.yaml`, using these **fixed names**:
+
+```yaml
+# /config/secrets.yaml
+my_weather_api_1: "YOUR_FIRST_API_KEY"
+my_weather_api_2: "YOUR_SECOND_API_KEY" # optional
+my_weather_api_3: "YOUR_THIRD_API_KEY"  # optional
+my_weather_api_4: "YOUR_FOURTH_API_KEY" # optional
+```
+
+**Only one key is required.** Any missing optional slot is skipped, even if the numbering has gaps: `my_weather_api_1` and `my_weather_api_3` work together without entries 2 and 4. The integration loads the available keys in numerical order and rotates between them on HTTP 429. Duplicate key values are used only once.
+
+Do not enter secret names or `!secret` in the integration UI: **no API-key name input is required**. Leave all direct API-key fields empty when using `secrets.yaml`. If no fixed secrets are present, the existing manually entered API keys continue to work for compatibility. An existing but empty or invalid fixed secret entry triggers a configuration error, never a fallback to a different key.
+
+After editing `secrets.yaml`, reload the integration to reread its keys. Do not commit `secrets.yaml` to Git. Older plaintext keys already stored in a config entry are not automatically removed when fixed secrets are used; recreating an existing entry is required if you want to remove those stored values.
+
+
+## Scheduled updates and hourly rollover
+
+Open **Settings → Devices & Services → Meteonomiqs → Configure** and enter up to four **full-hour publication times** in local 24-hour `HH:00` format (for example `06:00` and `14:00`). Leave all fields empty to disable scheduled fetching.
+
+For each scheduled publication at **14:00**, the integration **fetches at 13:55** and holds the downloaded response without changing any sensor values. At **14:00**, the forecast hour shifts and the complete new forecast is published **in one coordinator update**. The old snapshot remains visible until that moment. This prevents an old-forecast hour shift followed by a second API-revision jump.
+
+If prefetch fails, the regular hourly rollover still occurs using cached data. If the API is slow and responds after the intended hour, the new snapshot is published once it arrives (a second transition is possible in this unusual case). **Manual `my_weather.update` calls always publish immediately** and override any staged response. The usual hourly time-shift continues on hours without scheduled fetching. All times use Home Assistant's configured local timezone.
+
+**Quota warning:** Four updates per day use approximately 120–124 successful requests per month, which exceeds the 50-call allowance of one free API key. Disable any existing update automations if you do not want additional API requests.
+
+If the cached forecast no longer covers the current hour, affected sensors return `unknown` instead of incorrectly resetting to the first (stale) forecast hour. Genuine provider forecast revisions can still change values.
 
 ## Entities
 

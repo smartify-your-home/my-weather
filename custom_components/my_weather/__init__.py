@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 import logging
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
     PLATFORMS,
     CONF_API_KEY,
     CONF_API_KEYS,
+    CONF_API_KEY_SECRETS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_LANGUAGE,
+    CONF_UPDATE_TIMES,
 )
 from .coordinator import MeteonomiqsDataUpdateCoordinator
+from .secrets import async_load_fixed_secret_keys, SecretKeyError
+from .timing import prefetch_hour_slot, publication_target
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -28,15 +34,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data.setdefault(DOMAIN, {})
 
-    # Extract config
-    # Accept new list-based config; fall back to legacy single key.
-    api_keys = entry.data.get(CONF_API_KEYS)
+    # Fixed secret slots are preferred when present. Missing slots are optional.
+    try:
+        api_keys = await async_load_fixed_secret_keys(hass)
+    except SecretKeyError as err:
+        raise ConfigEntryNotReady(
+            "Meteonomiqs: invalid fixed API key in secrets.yaml"
+        ) from err
     if not api_keys:
-        legacy = entry.data.get(CONF_API_KEY)
-        api_keys = [legacy] if legacy else []
+        # Keep older manually configured entries working unchanged.
+        api_keys = entry.data.get(CONF_API_KEYS) or []
+        if not api_keys:
+            legacy = entry.data.get(CONF_API_KEY)
+            api_keys = [legacy] if legacy else []
 
     if not api_keys:
-        raise ValueError("Meteonomiqs: No API keys configured")
+        raise ConfigEntryNotReady("Meteonomiqs: No API keys configured")
 
     latitude = entry.data.get(CONF_LATITUDE)
     longitude = entry.data.get(CONF_LONGITUDE)
@@ -55,9 +68,44 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await coordinator.async_config_entry_first_refresh()
     _LOGGER.debug("MY_WEATHER: First refresh finished")
 
+    # A scheduled refresh is optional; manual refresh remains independent.
+    unsub_schedules = []
+
+    async def prefetch_before_hour(now):
+        """Read forecast five minutes before the configured publication hour."""
+        target = publication_target(now)
+        try:
+            await coordinator.async_prefetch(target)
+        except Exception:
+            _LOGGER.exception("MY_WEATHER: scheduled forecast prefetch failed")
+
+    async def publish_on_hour(now):
+        """Switch cached forecast hour and pending API data at one boundary."""
+        target = dt_util.as_utc(now)
+        if not coordinator.async_publish_staged(target):
+            coordinator._recalculate_current_index()
+
+    for slot in entry.options.get(CONF_UPDATE_TIMES, []):
+        try:
+            hour, minute = (int(part) for part in slot.split(":"))
+            if not (0 <= hour <= 23 and minute == 0):
+                raise ValueError("scheduled times must be full hours")
+        except (ValueError, AttributeError):
+            _LOGGER.warning("MY_WEATHER: ignoring invalid publication time %r", slot)
+            continue
+        prefetch_hour, prefetch_minute = prefetch_hour_slot(hour)
+        unsub_schedules.append(async_track_time_change(
+            hass, prefetch_before_hour, hour=prefetch_hour, minute=prefetch_minute, second=0,
+        ))
+        unsub_schedules.append(async_track_time_change(
+            hass, publish_on_hour, hour=hour, minute=0, second=0,
+        ))
+
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
+        "unsub_schedules": unsub_schedules,
     }
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     # -------------------------------------------------
     # Register manual update service (ONLY ONCE)
@@ -91,7 +139,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        data = hass.data[DOMAIN].pop(entry.entry_id, {})
+        for unsub in data.get("unsub_schedules", []):
+            unsub()
+        if coordinator := data.get("coordinator"):
+            coordinator.async_shutdown()
+        entry.async_unload()
 
         # Remove service if this was the last entry
         if not hass.data[DOMAIN]:
@@ -136,3 +189,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("MY_WEATHER: Migration to v3 successful")
 
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
+    """Apply changed scheduled fetch times without duplicate timers."""
+    await hass.config_entries.async_reload(entry.entry_id)

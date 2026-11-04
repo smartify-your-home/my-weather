@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "Conectar Meteonomiqs",
-        "description": "Introduce al menos una clave API. Se rotarán hasta 4 claves.",
+        "description": "Claves API leídas automáticamente desde /config/secrets.yaml: my_weather_api_1 a my_weather_api_4. Basta una clave; se omiten las entradas ausentes. También puedes introducirlas directamente.",
         "data": {
-          "api_key_1": "Clave API 1 (obligatoria)",
+          "api_key_1": "Clave API 1 (opcional)",
           "api_key_2": "Clave API 2 (opcional)",
           "api_key_3": "Clave API 3 (opcional)",
           "api_key_4": "Clave API 4 (opcional)",
@@ -18,7 +18,25 @@
     "error": {
       "required": "Se requiere al menos una clave API.",
       "invalid_lat": "Latitud no válida (debe estar entre –90 y 90).",
-      "invalid_lon": "Longitud no válida (debe estar entre –180 y 180)."
+      "invalid_lon": "Longitud no válida (debe estar entre –180 y 180).",
+      "invalid_secrets": "El archivo secrets.yaml contiene una clave no válida o no se puede leer."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Actualizaciones meteorológicas automáticas",
+        "description": "Selecciona hasta cuatro horas exactas (HH:00). Consulta cinco minutos antes y publica en punto. Los campos vacíos desactivan ese horario. Las claves se leen de secrets.yaml.",
+        "data": {
+          "update_time_1": "Publicación 1 (HH:00)",
+          "update_time_2": "Publicación 2 (HH:00)",
+          "update_time_3": "Publicación 3 (HH:00)",
+          "update_time_4": "Publicación 4 (HH:00)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Introduce una hora exacta en formato HH:00."
     }
   }
 }

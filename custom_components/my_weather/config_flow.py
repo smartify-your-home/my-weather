@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import re
+from homeassistant.core import callback
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import selector
+from .secrets import async_load_fixed_secret_keys, SecretKeyError
 
 from .const import (
     DOMAIN,
@@ -13,6 +17,7 @@ from .const import (
     CONF_LONGITUDE,
     CONF_LANGUAGE,
     DEFAULT_LANGUAGE,
+    CONF_UPDATE_TIMES,
 )
 
 CONF_API_KEY_1 = "api_key_1"
@@ -25,6 +30,11 @@ _TEXT_SELECTOR = selector({"text": {"type": "text"}})
 
 class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 3
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return MeteonomiqsOptionsFlow()
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         errors = {}
@@ -42,8 +52,14 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not keys and user_input.get(CONF_API_KEY):
                 keys = [user_input[CONF_API_KEY].strip()]
 
-            if not keys:
-                errors[CONF_API_KEY_1] = "required"
+            try:
+                fixed_keys = await async_load_fixed_secret_keys(self.hass)
+            except SecretKeyError:
+                errors["base"] = "invalid_secrets"
+                fixed_keys = []
+
+            if not keys and not fixed_keys and "base" not in errors:
+                errors["base"] = "required"
 
             # Convert lat/lon from string to float and validate
             lat = None
@@ -70,7 +86,7 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
 
                 data = {
-                    CONF_API_KEYS: keys,
+                    CONF_API_KEYS: [] if fixed_keys else keys,
                     CONF_LATITUDE: lat,
                     CONF_LONGITUDE: lon,
                     CONF_LANGUAGE: user_input.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),
@@ -79,7 +95,7 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_create_entry(title=title, data=data)
 
         data_schema = vol.Schema({
-            vol.Required(CONF_API_KEY_1): _TEXT_SELECTOR,
+            vol.Optional(CONF_API_KEY_1): _TEXT_SELECTOR,
             vol.Optional(CONF_API_KEY_2): _TEXT_SELECTOR,
             vol.Optional(CONF_API_KEY_3): _TEXT_SELECTOR,
             vol.Optional(CONF_API_KEY_4): _TEXT_SELECTOR,
@@ -102,4 +118,42 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=data_schema,
             errors=errors,
+        )
+
+
+class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
+    """Configure up to four daily fetch times in Home Assistant local time."""
+
+    async def async_step_init(self, user_input=None) -> FlowResult:
+        errors = {}
+        if user_input is not None:
+            times = []
+            for index in range(1, 5):
+                field = f"update_time_{index}"
+                value = str(user_input.get(field) or "").strip()
+                if not value:
+                    continue
+                if not re.fullmatch(r"(?:[01]\d|2[0-3]):00", value):
+                    errors[field] = "invalid_time"
+                elif value not in times:
+                    times.append(value)
+            if not errors:
+                options = dict(self.config_entry.options)
+                options[CONF_UPDATE_TIMES] = sorted(times)
+                return self.async_create_entry(title="", data=options)
+
+        saved = self.config_entry.options.get(CONF_UPDATE_TIMES, [])
+        fields = {}
+        for index in range(1, 5):
+            default = saved[index - 1] if index <= len(saved) else ""
+            fields[vol.Optional(f"update_time_{index}", default=default)] = _TEXT_SELECTOR
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(fields),
+            errors=errors,
+            description_placeholders={
+                "hint":  "HH:00 (full hour in Home Assistant local time); empty disables this slot. "
+                        "Up to four daily updates. Manual update service remains available."
+            },
         )

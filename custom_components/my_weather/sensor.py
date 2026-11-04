@@ -132,7 +132,7 @@ class MeteonomiqsCurrentSensor(CoordinatorEntity, SensorEntity):
         hourly = data.get("hourly", [])
         idx = data.get("current_index", 0)
 
-        if not hourly or idx >= len(hourly):
+        if not hourly or idx is None or idx >= len(hourly):
             return None
 
         value = hourly[idx]
@@ -157,8 +157,10 @@ class MeteonomiqsHourlyForecastSensor(CoordinatorEntity, SensorEntity):
         data = self.coordinator.data or {}
         hourly = data.get("hourly", [])
         idx = data.get("current_index", 0)
+        if idx is None:
+            return None
         target_idx = idx + self._offset
-        return hourly[target_idx] if target_idx < len(hourly) else None
+        return hourly[target_idx] if 0 <= target_idx < len(hourly) else None
 
     @property
     def native_value(self):
@@ -280,7 +282,16 @@ class MeteonomiqsApiLimitWarning(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         used = getattr(self.coordinator, "monthly_call_counter", 0)
-        return "Limit reached" if used >= 100 else "Warning" if used >= 80 else "OK"
+        limit = max(1, len(getattr(self.coordinator, "api_keys", []))) * 50
+        return "Limit reached" if used >= limit else "Warning" if used >= limit * 0.8 else "OK"
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "configured_api_keys": len(self.coordinator.api_keys),
+            "estimated_monthly_allowance": len(self.coordinator.api_keys) * 50,
+            "note": "Estimated free-tier allowance; provider counts may differ",
+        }
 
 
 class MeteonomiqsActiveApiKeyIndexSensor(CoordinatorEntity, SensorEntity):

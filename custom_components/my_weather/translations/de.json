@@ -3,9 +3,9 @@
     "step": {
       "user": {
         "title": "Meteonomiqs verbinden",
-        "description": "Mindestens einen API-Schlüssel eingeben. Bis zu 4 Keys werden im Round-Robin rotiert.",
+        "description": "API-Schlüssel automatisch aus /config/secrets.yaml lesen: my_weather_api_1 bis my_weather_api_4. Ein Schlüssel genügt; fehlende Nummern werden übersprungen. Alternativ direkte API-Schlüssel eingeben.",
         "data": {
-          "api_key_1": "API-Schlüssel 1 (Pflicht)",
+          "api_key_1": "API-Schlüssel 1 (optional)",
           "api_key_2": "API-Schlüssel 2 (optional)",
           "api_key_3": "API-Schlüssel 3 (optional)",
           "api_key_4": "API-Schlüssel 4 (optional)",
@@ -18,7 +18,25 @@
     "error": {
       "required": "Mindestens ein API-Schlüssel erforderlich.",
       "invalid_lat": "Breitengrad ungültig (–90 bis 90).",
-      "invalid_lon": "Längengrad ungültig (–180 bis 180)."
+      "invalid_lon": "Längengrad ungültig (–180 bis 180).",
+      "invalid_secrets": "Die secrets.yaml enthält einen ungültigen API-Schlüssel oder ist nicht lesbar."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Automatische Wetteraktualisierung",
+        "description": "Bis zu vier volle Stunden (HH:00). Die Abfrage erfolgt fünf Minuten vorher, die Veröffentlichung zur vollen Stunde. Leere Felder deaktivieren einen Termin. Die API-Schlüssel werden automatisch aus secrets.yaml gelesen.",
+        "data": {
+          "update_time_1": "Veröffentlichung 1 (HH:00)",
+          "update_time_2": "Veröffentlichung 2 (HH:00)",
+          "update_time_3": "Veröffentlichung 3 (HH:00)",
+          "update_time_4": "Veröffentlichung 4 (HH:00)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Nur volle Stunden im Format HH:00 erlaubt."
     }
   }
 }

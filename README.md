@@ -96,7 +96,7 @@ Open **Settings → Devices & Services → Meteonomiqs → Configure** and enter
 
 **Quota warning:** 4 updates/day ≈ 120–124 API requests per month. With one free key (50/month), limit scheduling to approximately one request per day, or add more keys. Existing manual automations should be disabled if you do not want additional requests.
 
-Hourly forecast offsets (`+0h`, `+1h`, etc.) are re-evaluated based on forecast timestamps each minute. The transition from `+2h` to `+1h` uses the *same forecast hour's value* from the cached snapshot, and a successful fetch swaps in the new complete response together. If the cached forecast no longer covers the current hour, the current and relative-hour sensors become unavailable rather than incorrectly resetting to the first (stale) hour. Real forecast changes supplied by the provider may still cause legitimate value changes.
+Hourly forecast offsets (`+0h`, `+1h`, etc.) are checked against timestamp boundaries each minute. During the first **10 minutes after an hourly boundary**, a rollover based solely on older cached data is postponed to allow a new API response to replace the snapshot in one step. If no update arrives, the rollover happens after this grace period. This deliberately retains the previous forecast for at most 10 minutes. The transition from `+2h` to `+1h` uses the *same forecast hour's value* from the cached snapshot, and a successful fetch swaps in the new complete response together. If the cached forecast no longer covers the current hour, the current and relative-hour sensors become unavailable rather than incorrectly resetting to the first (stale) hour. Real forecast changes supplied by the provider may still cause legitimate value changes.
 
 ## Entities
 

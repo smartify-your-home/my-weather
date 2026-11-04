@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import timedelta
 
@@ -39,6 +40,9 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         self.monthly_call_counter = 0
         self.current_month = dt_util.utcnow().month
         self.data = None
+        self._fetch_lock = asyncio.Lock()
+        self._pending_snapshot = None
+        self._pending_target = None
 
         lat_key = self._normalize(latitude)
         lon_key = self._normalize(longitude)
@@ -150,17 +154,9 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         old_index = self.data.get("current_index")
         if old_index == new_index:
             return False
-        # Grace period: when a fetch is expected shortly after the hourly boundary,
-        # avoid publishing yesterday's forecast shift and a fresh provider revision
-        # as two separate transitions. A fresh API snapshot bypasses this delay.
-        if old_index is not None and new_index is not None and new_index > old_index:
-            target_start = self._parse_utc(hourly[new_index].get("from"))
-            now = dt_util.utcnow()
-            if (target_start is not None
-                    and target_start <= now < target_start + timedelta(minutes=10)
-                    and (self.last_successful_update is None
-                         or self.last_successful_update < target_start)):
-                return False
+        # At a scheduled full hour the staged response is published as one update.
+        if self._pending_target and dt_util.utcnow() >= self._pending_target:
+            return self.async_publish_staged(self._pending_target)
         updated = dict(self.data)
         updated["current_index"] = new_index
         updated["current"] = hourly[new_index] if new_index is not None else None
@@ -171,8 +167,46 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
     async def _async_tick_recalculate_current_index(self, now):
         self._recalculate_current_index()
 
+    def async_publish_staged(self, target):
+        """Publish a complete snapshot only at or after its scheduled boundary."""
+        if self._pending_snapshot is None or self._pending_target != target:
+            return False
+        if dt_util.utcnow() < target:
+            return False
+        snapshot = self._pending_snapshot
+        self._pending_snapshot = None
+        self._pending_target = None
+        index = self._index_for_time(snapshot["hourly"], dt_util.utcnow())
+        snapshot = dict(snapshot, current_index=index,
+                        current=snapshot["hourly"][index] if index is not None else None)
+        self.data = snapshot
+        self.async_set_updated_data(snapshot)
+        return True
+
+    async def async_prefetch(self, target):
+        """Fetch before the scheduled full hour, but do not change sensors."""
+        await self._async_load_stats()
+        async with self._fetch_lock:
+            snapshot = await self._fetch_snapshot()
+            self._pending_snapshot = snapshot
+            self._pending_target = target
+            # If the API response is late, publish as soon as it arrives.
+            if dt_util.utcnow() >= target:
+                self.async_publish_staged(target)
+
     async def _async_update_data(self):
         await self._async_load_stats()
+        async with self._fetch_lock:
+            snapshot = await self._fetch_snapshot()
+            # Manual service updates win over any waiting scheduled snapshot.
+            self._pending_snapshot = None
+            self._pending_target = None
+            self.data = snapshot
+            await self._async_save_stats()
+            return snapshot
+
+    async def _fetch_snapshot(self):
+        """Build and validate a fresh forecast without publishing partial data."""
         now = dt_util.utcnow()
         url = f"{API_BASE}/forecast/{self.latitude}/{self.longitude}"
 
@@ -277,8 +311,7 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
             "current_index": current_index,
             "daily": daily_list,
         }
-        # Publish a coherent snapshot only after the whole response is validated.
+        # Save counters without replacing the published cached forecast.
         self.last_successful_update = now
-        self.data = new_data
         await self._async_save_stats()
         return new_data

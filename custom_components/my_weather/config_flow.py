@@ -126,7 +126,7 @@ class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
                 value = str(user_input.get(field) or "").strip()
                 if not value:
                     continue
-                if not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", value):
+                if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value):
                     errors[field] = "invalid_time"
                 elif value not in times:
                     times.append(value)

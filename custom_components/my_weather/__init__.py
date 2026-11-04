@@ -144,7 +144,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
             unsub()
         if coordinator := data.get("coordinator"):
             coordinator.async_shutdown()
-        entry.async_unload()
+        # Home Assistant owns ConfigEntry unloading; do not recursively unload it.
 
         # Remove service if this was the last entry
         if not hass.data[DOMAIN]:

@@ -9,6 +9,7 @@ import yaml
 from homeassistant.core import HomeAssistant
 
 SECRET_NAME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9_]*$")
+FIXED_SECRET_NAMES = tuple(f"my_weather_api_{n}" for n in range(1, 5))
 
 
 class SecretKeyError(ValueError):
@@ -39,4 +40,35 @@ async def async_load_secret_keys(hass: HomeAssistant, names: list[str]) -> list[
     """Read secrets from disk outside the Home Assistant event loop."""
     return await hass.async_add_executor_job(
         load_secret_keys, hass.config.path("secrets.yaml"), names
+    )
+
+
+def load_fixed_secret_keys(path: str) -> list[str]:
+    """Read any present fixed API keys in slot order (1–4)."""
+    try:
+        with Path(path).open("r", encoding="utf-8") as handle:
+            values = yaml.safe_load(handle) or {}
+    except FileNotFoundError:
+        return []
+    except (OSError, yaml.YAMLError) as err:
+        raise SecretKeyError("Cannot read secrets.yaml") from err
+    if not isinstance(values, dict):
+        raise SecretKeyError("secrets.yaml must contain a mapping")
+    keys = []
+    for name in FIXED_SECRET_NAMES:
+        if name not in values:
+            continue
+        value = values[name]
+        if not isinstance(value, str) or not value.strip():
+            raise SecretKeyError("Configured secret entry is empty or invalid: " + name)
+        key = value.strip()
+        if key not in keys:
+            keys.append(key)
+    return keys
+
+
+async def async_load_fixed_secret_keys(hass: HomeAssistant) -> list[str]:
+    """Load the fixed key slots without blocking the event loop."""
+    return await hass.async_add_executor_job(
+        load_fixed_secret_keys, hass.config.path("secrets.yaml")
     )

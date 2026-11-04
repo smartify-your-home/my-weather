@@ -1,0 +1,37 @@
+name: Publish HACS release
+on:
+  workflow_run:
+    workflows: ["Validate my-weather integration"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out verified commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.sha || github.event.workflow_run.head_sha }}
+          persist-credentials: true
+      - name: Publish version tag and release if absent
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="$(python -c 'import json; print(json.load(open("custom_components/my_weather/manifest.json"))["version"])')"
+          TAG="v${VERSION}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists. No duplicate published."
+            exit 0
+          fi
+          echo "Publishing $TAG from commit $(git rev-parse HEAD)"
+          gh release create "$TAG" --target "$(git rev-parse HEAD)" \
+            --title "my-weather $TAG" --notes-file RELEASE_NOTES.md --verify-tag=false

@@ -74,7 +74,7 @@ class MeteonomiqsWeather(CoordinatorEntity, WeatherEntity):
 
     @property
     def _cur(self) -> dict[str, Any]:
-        return (self.coordinator.data or {}).get("current", {})
+        return (self.coordinator.data or {}).get("current") or {}
 
     @property
     def condition(self) -> str | None:
@@ -147,7 +147,7 @@ class MeteonomiqsWeather(CoordinatorEntity, WeatherEntity):
         data = self.coordinator.data or {}
         hourly = data.get("hourly", [])
         idx = data.get("current_index", 0)
-        if not hourly: return None
+        if not hourly or idx is None: return None
         result = []
         for h in hourly[idx: idx + 48]:
             dt_obj = dt_util.parse_datetime(h.get("from"))

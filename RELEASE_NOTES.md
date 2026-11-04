@@ -1,6 +1,4 @@
-# Release notes – candidate 0.1.3.1
-
-**Status: release candidate, not published.** Changes currently live in Pull Request #1.
+# my-weather 0.1.3.1
 
 ## New features
 - Up to four configured full-hour publication slots in the integration options.
@@ -24,11 +22,7 @@ and reload the integration. Use the fixed secret names exactly; you do not need
 to enter names in the UI. Older plaintext keys saved in config entries are
 not automatically erased.
 
-## Before release
-- Check real HA runtime config flow and scheduling.
-- Exercise network failures/late responses, HA restarts near the hour,
-  midnight and seasonal timezone transitions.
-- Confirm dashboard entities and recorder/history behavior.
-- Merge reviewed PR only after verification.
+## Testing limitations
+Static validation and unit tests passed on the PR. Live Home Assistant integration testing, API response timing, restarts near an hour boundary and recorder/history validation have **not** yet been verified; treat scheduled publishing as a new behavior and monitor its first runs.
 
 See CHANGELOG.md for the versioned change list.

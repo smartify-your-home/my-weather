@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_track_time_change
@@ -20,6 +19,7 @@ from .const import (
 )
 from .coordinator import MeteonomiqsDataUpdateCoordinator
 from .secrets import async_load_fixed_secret_keys, SecretKeyError
+from .timing import prefetch_hour_slot, publication_target
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,7 +73,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     async def prefetch_before_hour(now):
         """Read forecast five minutes before the configured publication hour."""
-        target = dt_util.as_utc(now) + timedelta(minutes=5)
+        target = publication_target(now)
         try:
             await coordinator.async_prefetch(target)
         except Exception:
@@ -93,8 +93,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         except (ValueError, AttributeError):
             _LOGGER.warning("MY_WEATHER: ignoring invalid publication time %r", slot)
             continue
+        prefetch_hour, prefetch_minute = prefetch_hour_slot(hour)
         unsub_schedules.append(async_track_time_change(
-            hass, prefetch_before_hour, hour=(hour - 1) % 24, minute=55, second=0,
+            hass, prefetch_before_hour, hour=prefetch_hour, minute=prefetch_minute, second=0,
         ))
         unsub_schedules.append(async_track_time_change(
             hass, publish_on_hour, hour=hour, minute=0, second=0,

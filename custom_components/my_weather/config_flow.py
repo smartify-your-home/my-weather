@@ -86,7 +86,7 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._abort_if_unique_id_configured()
 
                 data = {
-                    CONF_API_KEYS: keys,
+                    CONF_API_KEYS: [] if fixed_keys else keys,
                     CONF_LATITUDE: lat,
                     CONF_LONGITUDE: lon,
                     CONF_LANGUAGE: user_input.get(CONF_LANGUAGE, DEFAULT_LANGUAGE),

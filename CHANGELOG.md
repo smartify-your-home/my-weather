@@ -3,7 +3,7 @@
 All notable changes are documented here; only published versions should be
 treated as releases.
 
-## [Unreleased] – planned 0.1.3.1 (Pull Request #1)
+## [0.1.3.1] – 2026-11-04
 
 - HACS options for up to four **full-hour** publication times per day.
 - Scheduled API prefetch five minutes before the hour, with deferred atomic
@@ -19,6 +19,4 @@ treated as releases.
 - API quota status now uses the active key count instead of fixed two-key thresholds.
 - Expanded regression tests and CI validation.
 
-**Not yet released.** Home Assistant runtime/integration tests are required
-before publishing 0.1.3.1. Prior historical version notes were not
-reconstructed because authoritative release history has not been verified.
+Live Home Assistant runtime scenarios have not all been verified; see RELEASE_NOTES.md. Prior historical version notes were not reconstructed because authoritative release history has not been verified.

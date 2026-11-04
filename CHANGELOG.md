@@ -3,6 +3,11 @@
 All notable changes are documented here; only published versions should be
 treated as releases.
 
+## [0.1.3.2] – 2026-11-04
+
+- Fix Home Assistant integration reload/unload: remove erroneous recursive call to `ConfigEntry.async_unload()`.
+- Add regression test to ensure the integration delegates config-entry lifecycle to Home Assistant.
+
 ## [0.1.3.1] – 2026-11-04
 
 - HACS options for up to four **full-hour** publication times per day.

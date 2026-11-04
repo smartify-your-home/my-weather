@@ -42,7 +42,7 @@ The integration rotates to the next key automatically when the API returns HTTP 
 
 ### Recommended Automation
 
-By default, auto-polling is disabled. You can set up to four scheduled fetch times under **Settings → Devices & Services → Meteonomiqs → Configure**, or use an automation as below. A sensible setup for 1 key (50 calls/month ≈ 1–2 per day):
+By default, auto-polling is disabled. You can set up to four scheduled fetch times under **Settings → Devices & Services → Meteonomiqs → Configure**, or use an automation as below. An example manual update for one key (50 calls/month):
 
 ```yaml
 automation:
@@ -50,13 +50,11 @@ automation:
     trigger:
       - platform: time
         at: "06:00:00"
-      - platform: time
-        at: "13:00:00"
     action:
       - service: my_weather.update
 ```
 
-With 2 keys (100 calls/month) you can update up to 3× per day, and so on. Adjust to your needs — just stay within your quota.
+Two keys permit roughly 100 calls per month. Scheduling three daily calls uses about 90–93 requests per month, leaving limited quota for manual calls or retries. Prefer the built-in full-hour schedule instead of duplicating it with automations.
 
 ---
 

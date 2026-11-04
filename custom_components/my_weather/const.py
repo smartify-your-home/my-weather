@@ -4,6 +4,7 @@ DOMAIN = "my_weather"
 
 CONF_API_KEY = "api_key"
 CONF_API_KEYS = "api_keys"
+CONF_API_KEY_SECRETS = "api_key_secrets"
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_LANGUAGE = "language"

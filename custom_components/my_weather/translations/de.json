@@ -25,17 +25,17 @@
     "step": {
       "init": {
         "title": "Automatische Wetter-Aktualisierung",
-        "description": "Bis zu vier Uhrzeiten (lokale Home-Assistant-Zeit). Leere Felder deaktivieren den jeweiligen Abruf. API-Kontingent beachten: 50 Aufrufe pro Schlüssel und Monat. Manuelle Aktualisierung bleibt verfügbar.",
+        "description": "Bis zu vier volle Stunden (HH:00) auswählen. Der API-Abruf erfolgt jeweils 5 Minuten vorher, die Werte erscheinen genau zum Stundenwechsel. Leere Felder deaktivieren einen Termin. API-Kontingent beachten. Manuelle Aktualisierung bleibt möglich.",
         "data": {
-          "update_time_1": "Abrufzeit 1 (HH:MM)",
-          "update_time_2": "Abrufzeit 2 (HH:MM)",
-          "update_time_3": "Abrufzeit 3 (HH:MM)",
-          "update_time_4": "Abrufzeit 4 (HH:MM)"
+          "update_time_1": "Veröffentlichung 1 (HH:00)",
+          "update_time_2": "Veröffentlichung 2 (HH:00)",
+          "update_time_3": "Veröffentlichung 3 (HH:00)",
+          "update_time_4": "Veröffentlichung 4 (HH:00)"
         }
       }
     },
     "error": {
-      "invalid_time": "Zeitformat HH:MM erforderlich."
+      "invalid_time": "Nur volle Stunden im Format HH:00 erlaubt."
     }
   }
 }

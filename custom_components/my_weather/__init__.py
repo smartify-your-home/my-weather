@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.helpers.event import async_track_time_change
 
 from .const import (
     DOMAIN,
@@ -12,6 +13,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_LANGUAGE,
+    CONF_UPDATE_TIMES,
 )
 from .coordinator import MeteonomiqsDataUpdateCoordinator
 
@@ -55,9 +57,32 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     await coordinator.async_config_entry_first_refresh()
     _LOGGER.debug("MY_WEATHER: First refresh finished")
 
+    # A scheduled refresh is optional; manual refresh remains independent.
+    unsub_schedules = []
+
+    async def scheduled_refresh(now):
+        try:
+            await coordinator.async_request_refresh()
+        except Exception:
+            _LOGGER.exception("MY_WEATHER: scheduled forecast update failed")
+
+    for slot in entry.options.get(CONF_UPDATE_TIMES, []):
+        try:
+            hour, minute = (int(part) for part in slot.split(":"))
+            if not (0 <= hour <= 23 and 0 <= minute <= 59):
+                raise ValueError("time out of range")
+        except (ValueError, AttributeError):
+            _LOGGER.warning("MY_WEATHER: ignoring invalid refresh time %r", slot)
+            continue
+        unsub_schedules.append(async_track_time_change(
+            hass, scheduled_refresh, hour=hour, minute=minute, second=0,
+        ))
+
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
+        "unsub_schedules": unsub_schedules,
     }
+    entry.async_on_unload(entry.add_update_listener(async_update_options))
 
     # -------------------------------------------------
     # Register manual update service (ONLY ONCE)
@@ -91,7 +116,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id, None)
+        data = hass.data[DOMAIN].pop(entry.entry_id, {})
+        for unsub in data.get("unsub_schedules", []):
+            unsub()
+        if coordinator := data.get("coordinator"):
+            coordinator.async_shutdown()
+        entry.async_unload()
 
         # Remove service if this was the last entry
         if not hass.data[DOMAIN]:
@@ -136,3 +166,8 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("MY_WEATHER: Migration to v3 successful")
 
     return True
+
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry):
+    """Apply changed scheduled fetch times without duplicate timers."""
+    await hass.config_entries.async_reload(entry.entry_id)

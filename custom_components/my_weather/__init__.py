@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
@@ -12,12 +12,14 @@ from .const import (
     PLATFORMS,
     CONF_API_KEY,
     CONF_API_KEYS,
+    CONF_API_KEY_SECRETS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_LANGUAGE,
     CONF_UPDATE_TIMES,
 )
 from .coordinator import MeteonomiqsDataUpdateCoordinator
+from .secrets import async_load_secret_keys, SecretKeyError
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,15 +34,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     hass.data.setdefault(DOMAIN, {})
 
-    # Extract config
-    # Accept new list-based config; fall back to legacy single key.
-    api_keys = entry.data.get(CONF_API_KEYS)
-    if not api_keys:
-        legacy = entry.data.get(CONF_API_KEY)
-        api_keys = [legacy] if legacy else []
+    # Existing plaintext API keys are supported for backwards compatibility.
+    # Named secrets take priority and are never written into the config entry.
+    secret_names = entry.options.get(
+        CONF_API_KEY_SECRETS, entry.data.get(CONF_API_KEY_SECRETS, []),
+    )
+    if secret_names:
+        try:
+            api_keys = await async_load_secret_keys(hass, secret_names)
+        except SecretKeyError as err:
+            raise ConfigEntryNotReady(
+                "Meteonomiqs: cannot resolve configured secrets.yaml API key names"
+            ) from err
+    else:
+        api_keys = entry.data.get(CONF_API_KEYS)
+        if not api_keys:
+            legacy = entry.data.get(CONF_API_KEY)
+            api_keys = [legacy] if legacy else []
 
     if not api_keys:
-        raise ValueError("Meteonomiqs: No API keys configured")
+        raise ConfigEntryNotReady("Meteonomiqs: No API keys configured")
 
     latitude = entry.data.get(CONF_LATITUDE)
     longitude = entry.data.get(CONF_LONGITUDE)

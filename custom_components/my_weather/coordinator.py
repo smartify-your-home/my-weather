@@ -147,8 +147,20 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         hourly = self.data.get("hourly") or []
         new_index = self._index_for_time(hourly, dt_util.utcnow())
         # Never publish hourly[0] as an arbitrary fallback if the cache is stale.
-        if self.data.get("current_index") == new_index:
+        old_index = self.data.get("current_index")
+        if old_index == new_index:
             return False
+        # Grace period: when a fetch is expected shortly after the hourly boundary,
+        # avoid publishing yesterday's forecast shift and a fresh provider revision
+        # as two separate transitions. A fresh API snapshot bypasses this delay.
+        if old_index is not None and new_index is not None and new_index > old_index:
+            target_start = self._parse_utc(hourly[new_index].get("from"))
+            now = dt_util.utcnow()
+            if (target_start is not None
+                    and target_start <= now < target_start + timedelta(minutes=10)
+                    and (self.last_successful_update is None
+                         or self.last_successful_update < target_start)):
+                return False
         updated = dict(self.data)
         updated["current_index"] = new_index
         updated["current"] = hourly[new_index] if new_index is not None else None

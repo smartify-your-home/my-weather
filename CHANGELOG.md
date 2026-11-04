@@ -15,6 +15,8 @@ treated as releases.
   Missing slots (including gaps) are allowed; duplicates are ignored.
 - Keep direct-key configuration as a legacy fallback.
 - Refreshed documentation, all five language translations and service metadata.
+- Added AGENTS.md, CONTRIBUTING.md, SECURITY.md, .gitignore, issue template, and CI checks for translations and timestamp calculations.
+- API quota status now uses the active key count instead of fixed two-key thresholds.
 - Expanded regression tests and CI validation.
 
 **Not yet released.** Home Assistant runtime/integration tests are required

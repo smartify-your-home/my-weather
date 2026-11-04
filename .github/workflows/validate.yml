@@ -1,0 +1,31 @@
+name: Validate my-weather integration
+on:
+  push:
+    paths:
+      - 'custom_components/my_weather/**'
+      - '.github/workflows/validate.yml'
+  pull_request:
+    paths:
+      - 'custom_components/my_weather/**'
+      - '.github/workflows/validate.yml'
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Compile all Python integration modules
+        run: python -m compileall -q custom_components/my_weather
+      - name: Validate integration JSON metadata and translations
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path("custom_components/my_weather")
+          assert json.loads((root / "manifest.json").read_text())["domain"] == "my_weather"
+          for file in (root / "strings.json", *sorted((root / "translations").glob("*.json"))):
+              json.loads(file.read_text())
+          print("All JSON configuration files validated.")
+          PY

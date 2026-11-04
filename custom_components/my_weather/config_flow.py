@@ -126,7 +126,7 @@ class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
                 value = str(user_input.get(field) or "").strip()
                 if not value:
                     continue
-                if not re.fullmatch(r"(?:[01]\d|2[0-3]):[0-5]\d", value):
+                if not re.fullmatch(r"(?:[01]\d|2[0-3]):00", value):
                     errors[field] = "invalid_time"
                 elif value not in times:
                     times.append(value)
@@ -147,7 +147,7 @@ class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
             data_schema=vol.Schema(fields),
             errors=errors,
             description_placeholders={
-                "hint": "HH:MM (Home Assistant local time); empty disables this slot. "
+                "hint":  "HH:00 (full hour in Home Assistant local time); empty disables this slot. "
                         "Up to four daily updates. Manual update service remains available."
             },
         )

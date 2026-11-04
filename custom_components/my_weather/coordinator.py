@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from collections import Counter
 
 from aiohttp import ClientTimeout
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -51,11 +50,17 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         )
         self._stats_loaded = False
 
-        async_track_time_interval(
+        self._unsub_index_tick = async_track_time_interval(
             hass,
             self._async_tick_recalculate_current_index,
-            timedelta(minutes=5),
+            timedelta(minutes=1),
         )
+
+    def async_shutdown(self):
+        """Remove the periodic cache index tracker on unload."""
+        if self._unsub_index_tick:
+            self._unsub_index_tick()
+            self._unsub_index_tick = None
 
     @staticmethod
     def _normalize(value):
@@ -72,18 +77,32 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
     def current_key_index(self) -> int:
         return self._current_key_index
 
-    async def _switch_api_key_and_clear_cache(self) -> None:
-        if not self.api_keys:
-            return
-
+    def _switch_api_key(self) -> None:
+        """Rotate keys without invalidating published forecast data or the cache."""
         self._current_key_index = (self._current_key_index + 1) % len(self.api_keys)
-        _LOGGER.warning("Meteonomiqs: HTTP 429 → switching API key to index %s", self._current_key_index)
+        _LOGGER.warning("Meteonomiqs: HTTP 429; switching to API key %s", self._current_key_index + 1)
 
-        self.data = None
-        self.last_successful_update = None
-        await self._store.async_remove()
-        self._stats_loaded = False
-        self.async_set_updated_data(self.data)
+    @staticmethod
+    def _parse_utc(value):
+        """Parse an API timestamp without overwriting an existing UTC offset."""
+        parsed = dt_util.parse_datetime(value) if value else None
+        if parsed is None:
+            return None
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=dt_util.UTC)
+        return dt_util.as_utc(parsed)
+
+    @classmethod
+    def _index_for_time(cls, hourly, now):
+        """Find the actual hour by timestamps, never by a guessed array position."""
+        for index, hour in enumerate(hourly):
+            if not isinstance(hour, dict):
+                continue
+            start = cls._parse_utc(hour.get("from"))
+            end = cls._parse_utc(hour.get("to"))
+            if start is not None and end is not None and start <= now < end:
+                return index
+        return None
 
     async def _async_load_stats(self):
         if self._stats_loaded:
@@ -100,6 +119,8 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
                     self.last_successful_update = None
             self.data = stored.get("last_data")
         self._stats_loaded = True
+        if self.data:
+            self._recalculate_current_index()
 
     async def _async_save_stats(self):
         await self._store.async_save({
@@ -124,24 +145,16 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         if not self.data:
             return False
         hourly = self.data.get("hourly") or []
-        now = dt_util.utcnow()
-        for idx, h in enumerate(hourly):
-            start = dt_util.parse_datetime(h.get("from"))
-            end = dt_util.parse_datetime(h.get("to"))
-            if not start or not end:
-                continue
-            if start.tzinfo is None: start = start.replace(tzinfo=dt_util.UTC)
-            if end.tzinfo is None: end = end.replace(tzinfo=dt_util.UTC)
-            if start <= now < end:
-                if self.data.get("current_index") != idx:
-                    new_data = dict(self.data)
-                    new_data["current_index"] = idx
-                    new_data["current"] = hourly[idx]
-                    self.data = new_data
-                    self.async_set_updated_data(new_data)
-                    return True
-                break
-        return False
+        new_index = self._index_for_time(hourly, dt_util.utcnow())
+        # Never publish hourly[0] as an arbitrary fallback if the cache is stale.
+        if self.data.get("current_index") == new_index:
+            return False
+        updated = dict(self.data)
+        updated["current_index"] = new_index
+        updated["current"] = hourly[new_index] if new_index is not None else None
+        self.data = updated
+        self.async_set_updated_data(updated)
+        return True
 
     async def _async_tick_recalculate_current_index(self, now):
         self._recalculate_current_index()
@@ -170,7 +183,7 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
                 async with session.get(url, headers=headers, timeout=ClientTimeout(total=20)) as resp:
                     if resp.status == 429:
                         attempts += 1
-                        await self._switch_api_key_and_clear_cache()
+                        self._switch_api_key()
                         continue
                     if resp.status != 200:
                         raise UpdateFailed(f"HTTP {resp.status}")
@@ -185,14 +198,9 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         self.monthly_call_counter += 1
         hourly = raw.get("hourly") if isinstance(raw.get("hourly"), list) else []
 
-        current_index = 0
-        for idx, h in enumerate(hourly):
-            start = dt_util.parse_datetime(h.get("from"))
-            end = dt_util.parse_datetime(h.get("to"))
-            if start and end:
-                if start.replace(tzinfo=dt_util.UTC) <= now < end.replace(tzinfo=dt_util.UTC):
-                    current_index = idx
-                    break
+        if not hourly or not any(isinstance(h, dict) and self._parse_utc(h.get("from")) and self._parse_utc(h.get("to")) for h in hourly):
+            raise UpdateFailed("Meteonomiqs: response contains no valid hourly forecast")
+        current_index = self._index_for_time(hourly, now)
 
         daily_map = {}
         for h in hourly:
@@ -250,13 +258,15 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
                 }
             })
 
-        self.last_successful_update = now
-        self.data = {
+        new_data = {
             "raw": raw,
             "hourly": hourly,
-            "current": hourly[current_index] if hourly else None,
+            "current": hourly[current_index] if current_index is not None else None,
             "current_index": current_index,
             "daily": daily_list,
         }
+        # Publish a coherent snapshot only after the whole response is validated.
+        self.last_successful_update = now
+        self.data = new_data
         await self._async_save_stats()
-        return self.data
+        return new_data

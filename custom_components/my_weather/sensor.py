@@ -282,7 +282,16 @@ class MeteonomiqsApiLimitWarning(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         used = getattr(self.coordinator, "monthly_call_counter", 0)
-        return "Limit reached" if used >= 100 else "Warning" if used >= 80 else "OK"
+        limit = max(1, len(getattr(self.coordinator, "api_keys", []))) * 50
+        return "Limit reached" if used >= limit else "Warning" if used >= limit * 0.8 else "OK"
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "configured_api_keys": len(self.coordinator.api_keys),
+            "estimated_monthly_allowance": len(self.coordinator.api_keys) * 50,
+            "note": "Estimated free-tier allowance; provider counts may differ",
+        }
 
 
 class MeteonomiqsActiveApiKeyIndexSensor(CoordinatorEntity, SensorEntity):

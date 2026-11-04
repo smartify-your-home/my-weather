@@ -34,4 +34,4 @@ jobs:
           fi
           echo "Publishing $TAG from commit $(git rev-parse HEAD)"
           gh release create "$TAG" --target "$(git rev-parse HEAD)" \
-            --title "my-weather $TAG" --notes-file RELEASE_NOTES.md --verify-tag=false
+            --title "my-weather $TAG" --notes-file RELEASE_NOTES.md

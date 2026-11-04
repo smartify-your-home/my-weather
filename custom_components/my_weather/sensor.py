@@ -132,7 +132,7 @@ class MeteonomiqsCurrentSensor(CoordinatorEntity, SensorEntity):
         hourly = data.get("hourly", [])
         idx = data.get("current_index", 0)
 
-        if not hourly or idx >= len(hourly):
+        if not hourly or idx is None or idx >= len(hourly):
             return None
 
         value = hourly[idx]
@@ -158,7 +158,7 @@ class MeteonomiqsHourlyForecastSensor(CoordinatorEntity, SensorEntity):
         hourly = data.get("hourly", [])
         idx = data.get("current_index", 0)
         target_idx = idx + self._offset
-        return hourly[target_idx] if target_idx < len(hourly) else None
+        return hourly[target_idx] if idx is not None and target_idx < len(hourly) else None
 
     @property
     def native_value(self):

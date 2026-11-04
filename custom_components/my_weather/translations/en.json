@@ -3,19 +3,15 @@
     "step": {
       "user": {
         "title": "Connect Meteonomiqs",
-        "description": "Up to four API keys: enter values directly OR the names of entries in /config/secrets.yaml (do not mix).",
+        "description": "Automatically read API keys from /config/secrets.yaml: my_weather_api_1 through my_weather_api_4. One key is sufficient; missing slots are skipped. Alternatively enter direct API keys.",
         "data": {
-          "api_key_1": "API Key 1 (required)",
+          "api_key_1": "API Key 1 (optional)",
           "api_key_2": "API Key 2 (optional)",
           "api_key_3": "API Key 3 (optional)",
           "api_key_4": "API Key 4 (optional)",
           "latitude": "Latitude",
           "longitude": "Longitude",
-          "language": "Language",
-          "api_secret_1": "Secret name 1 (optional)",
-          "api_secret_2": "Secret name 2 (optional)",
-          "api_secret_3": "Secret name 3 (optional)",
-          "api_secret_4": "Secret name 4 (optional)"
+          "language": "Language"
         }
       }
     },
@@ -23,30 +19,24 @@
       "required": "At least one API key is required.",
       "invalid_lat": "Invalid latitude (must be between –90 and 90).",
       "invalid_lon": "Invalid longitude (must be between –180 and 180).",
-      "choose_key_source": "Choose either direct keys or secret names.",
-      "invalid_secrets": "Secret reference missing, invalid, or secrets.yaml could not be read."
+      "invalid_secrets": "The secrets.yaml file contains an invalid API key or cannot be read."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Automatic weather updates",
-        "description": "Select up to four full-hour times (HH:00). The API request starts 5 minutes earlier, and sensor values publish at the hour. Empty slots disable fetching. Respect API quotas; manual updates remain available. Optional: enter secret names to use secrets.yaml instead of previously entered API keys.",
+        "description": "Select up to four full hours (HH:00). Fetch five minutes before each hour and publish at the hour. Empty fields disable a slot. API keys are read automatically from secrets.yaml.",
         "data": {
-          "update_time_1": "Publish time 1 (HH:00)",
-          "update_time_2": "Publish time 2 (HH:00)",
-          "update_time_3": "Publish time 3 (HH:00)",
-          "update_time_4": "Publish time 4 (HH:00)",
-          "api_secret_1": "Secret name 1 (optional)",
-          "api_secret_2": "Secret name 2 (optional)",
-          "api_secret_3": "Secret name 3 (optional)",
-          "api_secret_4": "Secret name 4 (optional)"
+          "update_time_1": "Publication 1 (HH:00)",
+          "update_time_2": "Publication 2 (HH:00)",
+          "update_time_3": "Publication 3 (HH:00)",
+          "update_time_4": "Publication 4 (HH:00)"
         }
       }
     },
     "error": {
-      "invalid_time": "Use a full hour in HH:00 format.",
-      "invalid_secrets": "Secret reference missing, invalid, or secrets.yaml could not be read."
+      "invalid_time": "Enter a full hour in HH:00 format."
     }
   }
 }

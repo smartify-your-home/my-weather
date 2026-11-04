@@ -11,6 +11,7 @@ from homeassistant.helpers.storage import Store
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .weather import map_condition_from_state
+from .timing import index_for_time, parse_utc
 
 from .const import API_BASE, LANG_MAP
 
@@ -86,27 +87,8 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
         self._current_key_index = (self._current_key_index + 1) % len(self.api_keys)
         _LOGGER.warning("Meteonomiqs: HTTP 429; switching to API key %s", self._current_key_index + 1)
 
-    @staticmethod
-    def _parse_utc(value):
-        """Parse an API timestamp without overwriting an existing UTC offset."""
-        parsed = dt_util.parse_datetime(value) if value else None
-        if parsed is None:
-            return None
-        if parsed.tzinfo is None:
-            parsed = parsed.replace(tzinfo=dt_util.UTC)
-        return dt_util.as_utc(parsed)
-
-    @classmethod
-    def _index_for_time(cls, hourly, now):
-        """Find the actual hour by timestamps, never by a guessed array position."""
-        for index, hour in enumerate(hourly):
-            if not isinstance(hour, dict):
-                continue
-            start = cls._parse_utc(hour.get("from"))
-            end = cls._parse_utc(hour.get("to"))
-            if start is not None and end is not None and start <= now < end:
-                return index
-        return None
+    _parse_utc = staticmethod(parse_utc)
+    _index_for_time = staticmethod(index_for_time)
 
     async def _async_load_stats(self):
         if self._stats_loaded:

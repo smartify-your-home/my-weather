@@ -22,6 +22,10 @@ class IntegrationStructureTests(unittest.TestCase):
                 self.assertEqual(set(translation["options"]["step"]["init"]["data"]), base_opts)
                 self.assertIn("invalid_time", translation["options"]["error"])
 
+    def test_no_recursive_config_entry_unload(self):
+        source = (COMPONENT / "__init__.py").read_text(encoding="utf-8")
+        self.assertNotIn("entry.async_unload(", source)
+
     def test_required_release_files_present(self):
         for filename in ("README.md", "AGENTS.md", "CHANGELOG.md", "CONTRIBUTING.md", "SECURITY.md", ".gitignore"):
             with self.subTest(filename=filename):
@@ -33,7 +37,7 @@ class IntegrationStructureTests(unittest.TestCase):
         hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["domain"], "my_weather")
         self.assertTrue(manifest["config_flow"])
-        self.assertEqual(manifest["version"], "0.1.3.1")
+        self.assertEqual(manifest["version"], "0.1.3.2")
         self.assertTrue(hacs["render_readme"])
 
 

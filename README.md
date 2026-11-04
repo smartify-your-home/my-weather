@@ -15,6 +15,7 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 ## Features
 
 - Up to **4 API keys** with automatic round-robin rotation on rate-limit (HTTP 429)
+- API keys can be referenced by name from Home Assistant's `/config/secrets.yaml`, with secret values kept out of the integration configuration.
 - **Manual update** via the `my_weather.update` service — full control over your API quota
 - **Optional scheduled updates**: up to four configurable full hours (HH:00) per day (Home Assistant local timezone)
 - **Atomic forecast replacement**: no temporary clearing when API keys rotate or refreshes fail
@@ -87,6 +88,26 @@ Go to **Settings → Devices & Services → Add Integration** and search for **M
 | Language | Language for weather descriptions: DE / EN / FR / IT / ES |
 
 Get your API key at https://www.meteonomiqs.com/weather-api/#heading-price-packages_2
+
+## API keys from secrets.yaml
+
+The integration supports **1–4 separate API keys** stored in `/config/secrets.yaml`. For example:
+
+```yaml
+# /config/secrets.yaml
+my_weather_api_1: "YOUR_FIRST_API_KEY"
+my_weather_api_2: "YOUR_SECOND_API_KEY"
+my_weather_api_3: "YOUR_THIRD_API_KEY"
+my_weather_api_4: "YOUR_FOURTH_API_KEY"
+```
+
+In the **integration setup**, leave the direct API key fields empty and enter these four **reference names** in the `Secret name 1–4` fields (e.g. `my_weather_api_1`). Do **not** enter `!secret` or the API key value in those fields. The integration resolves the entries on the Home Assistant host when it starts. Only reference names are saved in the configuration entry; values are loaded in memory. A missing or empty entry is reported as a configuration error without logging the API key itself.
+
+For an already configured integration, go to **Devices & Services → Meteonomiqs → Configure** and enter the secret names to switch the source. Changes reload the integration; after changing a value in `secrets.yaml`, reload the integration to load the new keys. Old manually entered key values remain in the original config entry for backwards compatibility, so for full removal of old saved secrets you must remove/re-create that config entry.
+
+You may configure **either** direct API key values **or** secret references during initial setup; do not mix the two. All four keys retain the same automatic HTTP 429 rotation.
+
+
 
 ---
 

@@ -25,17 +25,17 @@
     "step": {
       "init": {
         "title": "Automatic weather updates",
-        "description": "Up to four times daily (Home Assistant local time). Empty fields disable a slot. Mind your quota: 50 requests per key per month. Manual updates remain available.",
+        "description": "Select up to four full-hour times (HH:00). The API request starts 5 minutes earlier, and sensor values publish at the hour. Empty slots disable fetching. Respect API quotas; manual updates remain available.",
         "data": {
-          "update_time_1": "Refresh time 1 (HH:MM)",
-          "update_time_2": "Refresh time 2 (HH:MM)",
-          "update_time_3": "Refresh time 3 (HH:MM)",
-          "update_time_4": "Refresh time 4 (HH:MM)"
+          "update_time_1": "Publish time 1 (HH:00)",
+          "update_time_2": "Publish time 2 (HH:00)",
+          "update_time_3": "Publish time 3 (HH:00)",
+          "update_time_4": "Publish time 4 (HH:00)"
         }
       }
     },
     "error": {
-      "invalid_time": "Use HH:MM (24-hour clock)."
+      "invalid_time": "Use a full hour in HH:00 format."
     }
   }
 }

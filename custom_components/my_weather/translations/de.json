@@ -20,5 +20,22 @@
       "invalid_lat": "Breitengrad ungültig (–90 bis 90).",
       "invalid_lon": "Längengrad ungültig (–180 bis 180)."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Automatische Wetter-Aktualisierung",
+        "description": "Bis zu vier Uhrzeiten (lokale Home-Assistant-Zeit). Leere Felder deaktivieren den jeweiligen Abruf. API-Kontingent beachten: 50 Aufrufe pro Schlüssel und Monat. Manuelle Aktualisierung bleibt verfügbar.",
+        "data": {
+          "update_time_1": "Abrufzeit 1 (HH:MM)",
+          "update_time_2": "Abrufzeit 2 (HH:MM)",
+          "update_time_3": "Abrufzeit 3 (HH:MM)",
+          "update_time_4": "Abrufzeit 4 (HH:MM)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Zeitformat HH:MM erforderlich."
+    }
   }
 }

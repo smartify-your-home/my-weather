@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from datetime import timedelta
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_track_time_change
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
@@ -60,22 +62,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     # A scheduled refresh is optional; manual refresh remains independent.
     unsub_schedules = []
 
-    async def scheduled_refresh(now):
+    async def prefetch_before_hour(now):
+        """Read forecast five minutes before the configured publication hour."""
+        target = dt_util.as_utc(now) + timedelta(minutes=5)
         try:
-            await coordinator.async_request_refresh()
+            await coordinator.async_prefetch(target)
         except Exception:
-            _LOGGER.exception("MY_WEATHER: scheduled forecast update failed")
+            _LOGGER.exception("MY_WEATHER: scheduled forecast prefetch failed")
+
+    async def publish_on_hour(now):
+        """Switch cached forecast hour and pending API data at one boundary."""
+        target = dt_util.as_utc(now)
+        if not coordinator.async_publish_staged(target):
+            coordinator._recalculate_current_index()
 
     for slot in entry.options.get(CONF_UPDATE_TIMES, []):
         try:
             hour, minute = (int(part) for part in slot.split(":"))
-            if not (0 <= hour <= 23 and 0 <= minute <= 59):
-                raise ValueError("time out of range")
+            if not (0 <= hour <= 23 and minute == 0):
+                raise ValueError("scheduled times must be full hours")
         except (ValueError, AttributeError):
-            _LOGGER.warning("MY_WEATHER: ignoring invalid refresh time %r", slot)
+            _LOGGER.warning("MY_WEATHER: ignoring invalid publication time %r", slot)
             continue
         unsub_schedules.append(async_track_time_change(
-            hass, scheduled_refresh, hour=hour, minute=minute, second=0,
+            hass, prefetch_before_hour, hour=(hour - 1) % 24, minute=55, second=0,
+        ))
+        unsub_schedules.append(async_track_time_change(
+            hass, publish_on_hour, hour=hour, minute=0, second=0,
         ))
 
     hass.data[DOMAIN][entry.entry_id] = {

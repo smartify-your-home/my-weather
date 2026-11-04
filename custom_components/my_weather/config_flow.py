@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import re
+from homeassistant.core import callback
+
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
@@ -13,6 +16,7 @@ from .const import (
     CONF_LONGITUDE,
     CONF_LANGUAGE,
     DEFAULT_LANGUAGE,
+    CONF_UPDATE_TIMES,
 )
 
 CONF_API_KEY_1 = "api_key_1"
@@ -25,6 +29,11 @@ _TEXT_SELECTOR = selector({"text": {"type": "text"}})
 
 class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 3
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        return MeteonomiqsOptionsFlow()
 
     async def async_step_user(self, user_input=None) -> FlowResult:
         errors = {}
@@ -102,4 +111,43 @@ class MeteonomiqsConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=data_schema,
             errors=errors,
+        )
+
+
+class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
+    """Configure up to four daily fetch times in Home Assistant local time."""
+
+    async def async_step_init(self, user_input=None) -> FlowResult:
+        errors = {}
+        if user_input is not None:
+            times = []
+            for index in range(1, 5):
+                field = f"update_time_{index}"
+                value = str(user_input.get(field) or "").strip()
+                if not value:
+                    continue
+                if not re.fullmatch(r"(?:[01]\\d|2[0-3]):[0-5]\\d", value):
+                    errors[field] = "invalid_time"
+                elif value not in times:
+                    times.append(value)
+            if not errors:
+                return self.async_create_entry(
+                    title="",
+                    data={CONF_UPDATE_TIMES: sorted(times)},
+                )
+
+        saved = self.config_entry.options.get(CONF_UPDATE_TIMES, [])
+        fields = {}
+        for index in range(1, 5):
+            default = saved[index - 1] if index <= len(saved) else ""
+            fields[vol.Optional(f"update_time_{index}", default=default)] = _TEXT_SELECTOR
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(fields),
+            errors=errors,
+            description_placeholders={
+                "hint": "HH:MM (Home Assistant local time); empty disables this slot. "
+                        "Up to four daily updates. Manual update service remains available."
+            },
         )

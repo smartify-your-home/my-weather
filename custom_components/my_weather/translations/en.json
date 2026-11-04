@@ -20,5 +20,22 @@
       "invalid_lat": "Invalid latitude (must be between –90 and 90).",
       "invalid_lon": "Invalid longitude (must be between –180 and 180)."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Automatic weather updates",
+        "description": "Up to four times daily (Home Assistant local time). Empty fields disable a slot. Mind your quota: 50 requests per key per month. Manual updates remain available.",
+        "data": {
+          "update_time_1": "Refresh time 1 (HH:MM)",
+          "update_time_2": "Refresh time 2 (HH:MM)",
+          "update_time_3": "Refresh time 3 (HH:MM)",
+          "update_time_4": "Refresh time 4 (HH:MM)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Use HH:MM (24-hour clock)."
+    }
   }
 }

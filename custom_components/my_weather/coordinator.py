@@ -199,11 +199,12 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
             self.monthly_call_counter = 0
 
         session = async_get_clientsession(self.hass)
-        attempts = 0
-        max_attempts = max(1, len(self.api_keys))
+        # Try each configured key at most once. 401/403 deny access for this
+        # key; 429 means its quota has been reached. Never disclose key values.
+        statuses = []
         raw = None
-
-        while attempts < max_attempts:
+        for attempt in range(len(self.api_keys)):
+            key_number = self._current_key_index + 1
             headers = {
                 "x-api-key": self.api_key,
                 "Accept": "application/json",
@@ -211,19 +212,42 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
             }
             try:
                 async with session.get(url, headers=headers, timeout=ClientTimeout(total=20)) as resp:
-                    if resp.status == 429:
-                        attempts += 1
-                        self._switch_api_key()
+                    if resp.status in (401, 403, 429):
+                        statuses.append(resp.status)
+                        _LOGGER.warning(
+                            "Meteonomiqs: API key slot %d rejected (HTTP %d); %s",
+                            key_number,
+                            resp.status,
+                            "trying next key" if attempt + 1 < len(self.api_keys)
+                            else "no more configured keys",
+                        )
+                        if attempt + 1 < len(self.api_keys):
+                            self._current_key_index = (
+                                self._current_key_index + 1
+                            ) % len(self.api_keys)
                         continue
                     if resp.status != 200:
-                        raise UpdateFailed(f"HTTP {resp.status}")
+                        raise UpdateFailed(
+                            f"Meteonomiqs forecast API returned HTTP {resp.status}"
+                        )
                     raw = await resp.json()
                     break
+            except UpdateFailed:
+                raise
             except Exception as err:
-                raise UpdateFailed(f"Meteonomiqs fetch error: {err}")
+                # Do not include headers, request object or API key in logs.
+                _LOGGER.warning("Meteonomiqs: request failed (%s)", type(err).__name__)
+                raise UpdateFailed(
+                    "Meteonomiqs forecast request failed"
+                ) from err
 
         if raw is None:
-            raise UpdateFailed("Meteonomiqs: all API keys returned HTTP 429")
+            codes = ", ".join(str(code) for code in statuses)
+            raise UpdateFailed(
+                f"Meteonomiqs forecast access denied for all {len(self.api_keys)} "
+                f"configured API key(s) (HTTP responses: {codes}). "
+                "Check secret values and forecast API permissions."
+            )
 
         if not isinstance(raw, dict):
             raise UpdateFailed("Meteonomiqs: unexpected API response format")

@@ -14,7 +14,7 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 
 ## Features
 
-- Up to **4 API keys** with automatic round-robin rotation on rate-limit (HTTP 429)
+- Up to **4 API keys** with rotation on HTTP 401/403 (key access denied) and 429 (rate limited). If every key receives 403, check provider entitlements and API key validity. Cached data is preserved.
 - API keys are automatically loaded from fixed names in Home Assistant's `/config/secrets.yaml`, with no secret names entered in the integration dialog.
 - **Manual update** via the `my_weather.update` service — full control over your API quota
 - **Optional scheduled updates**: up to four configurable full hours (HH:00) per day (Home Assistant local timezone)

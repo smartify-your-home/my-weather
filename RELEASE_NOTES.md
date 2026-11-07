@@ -1,17 +1,11 @@
-# my-weather 0.1.3.2 – Hotfix
+# my-weather 0.1.3.3 – HTTP 403 access-denied hotfix
 
-Fix unloading and reloading the Meteonomiqs Home Assistant integration.
+Meteonomiqs may return HTTP 403 when a key lacks permission for the requested forecast endpoint. Previously the integration rotated only on 429, so a rejected first key prevented other configured keys from being tried.
 
-### Fixed
-- Removed an incorrect call to `ConfigEntry.async_unload()` inside the integration's `async_unload_entry` function.
-- Home Assistant itself manages the config-entry lifecycle; integrations unload their entity platforms, cancel scheduled callbacks and stop timers.
-- Added a regression test to prevent the incorrect nested unload call from returning.
+- Try each available secret key once on HTTP 401, 403 or 429.
+- Preserve existing forecast cache and publish no failed API responses.
+- Log slot numbers and HTTP codes, never secret values.
+- If **all** configured keys are denied, the problem must be resolved at the API provider or by correcting the keys; a code change cannot authorize a forbidden endpoint.
+- Keep the 0.1.3.2 unload hotfix and all earlier behavior.
 
-### Installation
-Update via HACS to 0.1.3.2, restart Home Assistant after code installation, then test **Reload** for the Meteonomiqs integration.
-
-### Previous changes (0.1.3.1)
-All improvements from 0.1.3.1 remain: automatic 1–4 fixed API keys from `secrets.yaml`, scheduled weather prefetch/publish, translations and docs.
-
-### Testing
-CI syntax/unit tests are required. An end-to-end test with the user's Home Assistant instance has not been performed.
+**Verification:** automated tests verify Python syntax and configuration structure. The live provider's authorization response cannot be reproduced without account credentials.

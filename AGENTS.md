@@ -32,6 +32,11 @@ For every changed behavior:
 5. Never silently remove previous fixes or functions while refactoring.
 6. Describe untested runtime scenarios explicitly in the PR and release notes.
 
+## CI noise policy
+Run validation for pull requests and main branch pushes only. Avoid redundant branch push
+runs and brittle assertions tied to a specific released version. Never silence genuine
+CI failures with `continue-on-error`, unconditional success, or skipped validations.
+
 ## Releases
 A passing syntax/JSON workflow alone does not certify runtime correctness.
 Use a reviewed PR and validate Home Assistant config-flow, scheduler, timezone,

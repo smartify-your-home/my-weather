@@ -3,6 +3,12 @@
 All notable changes are documented here; only published versions should be
 treated as releases.
 
+## [Unreleased]
+
+- CI runs once for feature-branch pull requests and on main pushes, avoiding redundant push-triggered runs.
+- Replace version-pinned structure assertion with a version-format check so future normal releases do not generate false failures.
+- Keep real test errors failing visibly; account email notification settings remain user-controlled.
+
 ## [0.1.3.3] – 2026-11-07
 
 - Rotate to the next configured API key when the provider returns HTTP 401 or 403, as well as HTTP 429.

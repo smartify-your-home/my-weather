@@ -12,6 +12,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.util import dt as dt_util
 from .weather import map_condition_from_state
 from .timing import index_for_time, parse_utc
+from .api_errors import should_try_other_key
 
 from .const import API_BASE, LANG_MAP
 
@@ -212,7 +213,7 @@ class MeteonomiqsDataUpdateCoordinator(DataUpdateCoordinator):
             }
             try:
                 async with session.get(url, headers=headers, timeout=ClientTimeout(total=20)) as resp:
-                    if resp.status in (401, 403, 429):
+                    if should_try_other_key(resp.status):
                         statuses.append(resp.status)
                         _LOGGER.warning(
                             "Meteonomiqs: API key slot %d rejected (HTTP %d); %s",

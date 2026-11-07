@@ -3,7 +3,7 @@
 ## Mandatory read before edits
 Read this file, README.md, CHANGELOG.md, custom_components/my_weather/manifest.json,
 custom_components/my_weather/config_flow.py, __init__.py, coordinator.py, sensor.py,
-weather.py, secrets.py, timing.py, const.py, services.yaml, strings.json and translations/*.
+weather.py, secrets.py, timing.py, api_errors.py, const.py, services.yaml, strings.json and translations/*.
 Read all relevant tests, RELEASE_NOTES.md, and CONTRIBUTING.md before changing functionality. Compare the default branch
 and recent pull requests to avoid reintroducing removed regressions.
 
@@ -18,7 +18,7 @@ and recent pull requests to avoid reintroducing removed regressions.
 - Scheduled full-hour publication (up to 4 times/day, local timezone): prefetch
   five minutes before, stage without sensor changes, publish coherent snapshot
   at the hour. Fall back safely if request fails or is late.
-- Never clear sensor data because of HTTP 429/key switching; never use hourly
+- Never clear sensor data because of HTTP 401/403/429 key switching; never use hourly
   array index 0 as a fallback when the current forecast hour is absent.
 - Honor the Meteonomiqs quota. No implicit polling when no schedule is selected.
 

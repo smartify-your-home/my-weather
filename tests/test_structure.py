@@ -37,7 +37,7 @@ class IntegrationStructureTests(unittest.TestCase):
         hacs = json.loads((ROOT / "hacs.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["domain"], "my_weather")
         self.assertTrue(manifest["config_flow"])
-        self.assertEqual(manifest["version"], "0.1.3.2")
+        self.assertEqual(manifest["version"], "0.1.3.3")
         self.assertTrue(hacs["render_readme"])
 
 

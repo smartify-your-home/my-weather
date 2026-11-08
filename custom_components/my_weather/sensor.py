@@ -24,7 +24,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .weather import map_condition_from_state
-from .cloud_forecast import cloud_forecast_8h
+from .cloud_forecast import cloud_forecast, cloud_forecast_8h
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,6 +103,7 @@ async def async_setup_entry(
 
     entities.extend([
         MeteonomiqsCloudForecast8hSensor(coord, entry),
+        MeteonomiqsCloudForecast48hSensor(coord, entry),
         MeteonomiqsLastApiUpdateSensor(coord),
         MeteonomiqsDataAgeSensor(coord),
         MeteonomiqsMonthlyCallCounter(coord),
@@ -338,6 +339,46 @@ class MeteonomiqsCloudForecast8hSensor(CoordinatorEntity, SensorEntity):
         return {
             "forecast": self._forecast,
             "forecast_hours": 8,
+            "source": "Meteonomiqs",
+            "last_api_update": (
+                self.coordinator.last_successful_update.isoformat()
+                if self.coordinator.last_successful_update else None
+            ),
+        }
+
+
+class MeteonomiqsCloudForecast48hSensor(CoordinatorEntity, SensorEntity):
+    """Full hourly cloud forecast, bounded by provider data and 48 slots."""
+
+    _attr_name = "Meteonomiqs Cloud Forecast 48h"
+    _attr_icon = "mdi:weather-partly-cloudy"
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_cloud_forecast_48h"
+
+    @property
+    def _forecast(self):
+        return cloud_forecast(
+            (self.coordinator.data or {}).get("hourly") or [],
+            dt_util.utcnow(), 48,
+        )
+
+    @property
+    def native_value(self):
+        values = [row["cloud_coverage"] for row in self._forecast
+                  if row["cloud_coverage"] is not None]
+        return round(sum(values) / len(values)) if values else None
+
+    @property
+    def extra_state_attributes(self):
+        forecast = self._forecast
+        return {
+            "forecast": forecast,
+            "forecast_hours": len(forecast),
+            "valid_cloud_hours": sum(row["cloud_coverage"] is not None for row in forecast),
+            "max_forecast_hours": 48,
             "source": "Meteonomiqs",
             "last_api_update": (
                 self.coordinator.last_successful_update.isoformat()

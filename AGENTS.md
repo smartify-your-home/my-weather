@@ -8,6 +8,7 @@ Read all relevant tests, RELEASE_NOTES.md, and CONTRIBUTING.md before changing f
 and recent pull requests to avoid reintroducing removed regressions.
 
 ## Non-negotiable behavior
+- Extended 48h bridge: introduce separate sensor and preserve the legacy 8h sensor. `forecast_hours` on 48h sensor is the actual number of returned intervals, not always 48; `valid_cloud_hours` counts non-null clouds. No API calls from chart or from extra sensors. 8/24/48 chart views must not invent missing data.
 - Eight-hour cloud bridge: keep `sensor.meteonomiqs_cloud_forecast_8h`
   forecast attribute as `[{datetime, end, cloud_coverage}]`, percent 0–100
   or null. No extra weather fetch, no fallback to stale hourly[0]. Preserve

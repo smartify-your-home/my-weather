@@ -16,6 +16,7 @@ for name in ("timing", "cloud_forecast"):
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
 cloud_forecast_8h = sys.modules["my_weather_test.cloud_forecast"].cloud_forecast_8h
+cloud_forecast = sys.modules["my_weather_test.cloud_forecast"].cloud_forecast
 
 
 class CloudForecastTests(unittest.TestCase):
@@ -34,6 +35,28 @@ class CloudForecastTests(unittest.TestCase):
         self.assertEqual(values[2]["cloud_coverage"], 25)
         self.assertIsNone(values[3]["cloud_coverage"])
         self.assertEqual(values[7]["cloud_coverage"], 88)
+
+
+    def test_48h_forecast_is_bounded_and_preserves_8h_sensor(self):
+        origin = datetime(2026, 11, 8, 10, tzinfo=timezone.utc)
+        rows = [{"from": (origin + timedelta(hours=i)).isoformat(),
+                 "to": (origin + timedelta(hours=i + 1)).isoformat(),
+                 "clouds": {"eights": i % 9}} for i in range(72)]
+        full = cloud_forecast(rows, origin + timedelta(minutes=10), 48)
+        self.assertEqual(len(full), 48)
+        self.assertEqual(full[-1]["datetime"], (origin + timedelta(hours=47)).isoformat())
+        self.assertEqual(len(cloud_forecast_8h(rows, origin)), 8)
+
+    def test_short_api_response_and_unknown_clouds(self):
+        origin = datetime(2026, 11, 8, 10, tzinfo=timezone.utc)
+        rows = [{"from": (origin + timedelta(hours=i)).isoformat(),
+                 "to": (origin + timedelta(hours=i + 1)).isoformat(),
+                 "clouds": {} if i == 4 else {"eights": 3}} for i in range(19)]
+        result = cloud_forecast(rows, origin, 48)
+        self.assertEqual(len(result), 19)
+        self.assertIsNone(result[4]["cloud_coverage"])
+        self.assertEqual(len([r for r in result if r["cloud_coverage"] is not None]), 18)
+        self.assertEqual(cloud_forecast(rows, origin + timedelta(days=7), 48), [])
 
     def test_stale_cache_never_falls_back_to_first_hour(self):
         origin = datetime(2026, 11, 8, 10, tzinfo=timezone.utc)

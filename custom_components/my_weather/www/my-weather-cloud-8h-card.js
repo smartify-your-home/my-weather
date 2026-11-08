@@ -5,6 +5,7 @@ class MyWeatherCloud8hCard extends HTMLElement {
       throw new Error("Set entity to the My-Weather Cloud Forecast 8h sensor");
     }
     this._config = config;
+    this._hours = [8, 24, 48].includes(Number(config.hours)) ? Number(config.hours) : 8;
     this._render();
   }
   set hass(hass) {
@@ -22,12 +23,17 @@ class MyWeatherCloud8hCard extends HTMLElement {
     const card = document.createElement("ha-card");
     const title = document.createElement("div");
     title.className = "title";
-    title.textContent = this._config.title || "Bewölkung – nächste 8 Stunden";
+    title.textContent = this._config.title || "Bewölkung – Stundenprognose";
     card.append(title);
     const style = document.createElement("style");
     style.textContent = `
       ha-card{padding:16px;color:var(--primary-text-color);background:var(--ha-card-background,var(--card-background-color))}
-      .title{font-size:var(--ha-card-header-font-size,18px);font-weight:600;margin-bottom:14px}
+      .title{font-size:var(--ha-card-header-font-size,18px);font-weight:600;margin-bottom:10px}
+      .controls{display:flex;gap:6px;margin-bottom:12px}
+      .controls button{font:inherit;border:1px solid var(--divider-color);border-radius:6px;padding:4px 12px;background:transparent;color:inherit;cursor:pointer}
+      .controls button.active{background:var(--secondary-background-color);border-color:var(--primary-color)}
+      .plot-scroll{overflow-x:auto;overscroll-behavior-x:contain}
+      .plot.long{grid-template-columns:repeat(var(--hours),minmax(54px,1fr));min-width:calc(var(--hours) * 60px)}
       .plot{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:8px;height:155px;align-items:end}
       .column{min-width:0;display:flex;flex-direction:column;align-items:center;gap:5px}
       .value{font-size:12px;font-variant-numeric:tabular-nums}
@@ -39,14 +45,24 @@ class MyWeatherCloud8hCard extends HTMLElement {
       @media(max-width:440px){.plot{gap:3px}.value{font-size:10px}.hour{font-size:10px}}
     `;
     root.append(style);
+    const controls=document.createElement("div");controls.className="controls";
+    for (const hours of [8,24,48]) {
+      const btn=document.createElement("button");btn.type="button";
+      btn.textContent=hours+" h";btn.className=this._hours===hours?"active":"";
+      btn.addEventListener("click",()=>{this._hours=hours;this._render();});
+      controls.append(btn);
+    }
+    card.append(controls);
     if (!Array.isArray(values) || values.length === 0) {
       const empty = document.createElement("div");
       empty.className="empty";
-      empty.textContent="Keine gültige 8-Stunden-Prognose verfügbar";
+      empty.textContent="Keine gültige Bewölkungsprognose verfügbar";
       card.append(empty);
     } else {
-      const plot=document.createElement("div");plot.className="plot";
-      for (let i=0; i<8; i++) {
+      const viewport=document.createElement("div");viewport.className="plot-scroll";
+      const plot=document.createElement("div");plot.className="plot"+(this._hours>8?" long":"");
+      plot.style.setProperty("--hours",String(this._hours));
+      for (let i=0; i<Math.min(this._hours,values.length); i++) {
         const item=values[i];
         const col=document.createElement("div");col.className="column";
         const number=document.createElement("div");number.className="value";
@@ -63,9 +79,10 @@ class MyWeatherCloud8hCard extends HTMLElement {
         } else hour.textContent="–";
         col.append(number,track,hour);plot.append(col);
       }
-      card.append(plot);
+      viewport.append(plot);card.append(viewport);
       const note=document.createElement("div");note.className="note";
-      note.textContent="Meteonomiqs · Stundenprognose, keine zusätzliche API-Abfrage";
+      note.textContent=`Meteonomiqs · ${values.length} h geliefert, ${values.filter(x=>typeof x.cloud_coverage==="number").length} h mit Wolkenwerten · keine zusätzliche API-Abfrage`;
+      if (this._hours>values.length) note.textContent+=" · Für längere Anzeige den 48h-Sensor wählen";
       card.append(note);
     }
     root.append(card);

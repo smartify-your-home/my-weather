@@ -5,6 +5,10 @@ treated as releases.
 
 ## [Unreleased]
 
+- Add 8-hour cloud coverage forecast (mean % sensor with timestamped `forecast`
+  attribute) to support SEP weather-aware PV modelling without extra API calls.
+- Add responsive built-in Lovelace cloud chart and regression tests for missing
+  data, timestamp alignment and stale cache; no changes to 401/403/429 handling.
 - CI runs once for feature-branch pull requests and on main pushes, avoiding redundant push-triggered runs.
 - Replace version-pinned structure assertion with a version-format check so future normal releases do not generate false failures.
 - Keep real test errors failing visibly; account email notification settings remain user-controlled.

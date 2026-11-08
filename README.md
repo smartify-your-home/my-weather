@@ -12,7 +12,46 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 
 
 
-## Features
+## Features## Eight-hour cloud forecast for Smartify Energy Pro
+
+My-Weather now provides the **Meteonomiqs Cloud Forecast 8h** sensor. Its
+state is the mean of available cloud percentages (0–100 %) in the current
+and next seven hourly slots. The `forecast` attribute is the machine-readable
+interface for Smartify Energy Pro (SEP):
+
+```yaml
+forecast:
+  - datetime: "2026-11-08T10:00:00+00:00"
+    end: "2026-11-08T11:00:00+00:00"
+    cloud_coverage: 50
+```
+
+There can be up to eight entries, each with UTC ISO-8601 timestamps; missing
+cloud readings are `null`, never assumed to be 0 %. A stale cache
+produces an unavailable value and an empty list, not a misleading forecast.
+The series refreshes from the existing cached API response **without any
+additional API requests**. It follows the same scheduled/manual publication
+rules as all other weather entities.
+
+**Chart:** After installing/restarting My-Weather, add a *Manual* dashboard
+card (the integration registers the bundled card resource):
+
+```yaml
+type: custom:my-weather-cloud-8h-card
+entity: sensor.meteonomiqs_cloud_forecast_8h
+title: Bewölkung – nächste 8 Stunden
+```
+
+The actual entity ID can differ; select it under Developer Tools → States.
+The chart shows eight hourly bars and uses the Home Assistant theme.
+When installing an update, reload the frontend to load the changed card.
+The `forecast` attribute is **cloud cover, not PV watt-hours**: SEP must use
+it alongside a solar irradiation/PV production model. Do not add this sensor
+to SEP's existing PV-forecast *energy* sensor list, because that list expects
+Wh, not %. Forecast reliability decreases with local fog, mist and rapidly
+changing cloud cover.
+
+
 
 - Up to **4 API keys** with rotation on HTTP 401/403 (key access denied) and 429 (rate limited). If every key receives 403, check provider entitlements and API key validity. Cached data is preserved.
 - API keys are automatically loaded from fixed names in Home Assistant's `/config/secrets.yaml`, with no secret names entered in the integration dialog.

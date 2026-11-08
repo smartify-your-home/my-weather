@@ -24,6 +24,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import DOMAIN
 from .weather import map_condition_from_state
+from .cloud_forecast import cloud_forecast_8h
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -101,6 +102,7 @@ async def async_setup_entry(
         entities.append(MeteonomiqsCurrentSensor(coord, entry, desc))
 
     entities.extend([
+        MeteonomiqsCloudForecast8hSensor(coord, entry),
         MeteonomiqsLastApiUpdateSensor(coord),
         MeteonomiqsDataAgeSensor(coord),
         MeteonomiqsMonthlyCallCounter(coord),
@@ -305,3 +307,40 @@ class MeteonomiqsActiveApiKeyIndexSensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self):
         return int(getattr(self.coordinator, "current_key_index", 0)) + 1
+
+
+class MeteonomiqsCloudForecast8hSensor(CoordinatorEntity, SensorEntity):
+    """Shared eight-hour cloud series for Lovelace charts and SEP."""
+
+    _attr_name = "Meteonomiqs Cloud Forecast 8h"
+    _attr_icon = "mdi:weather-partly-cloudy"
+    _attr_native_unit_of_measurement = PERCENTAGE
+
+    def __init__(self, coordinator, entry: ConfigEntry):
+        super().__init__(coordinator)
+        self._attr_unique_id = f"{entry.entry_id}_cloud_forecast_8h"
+
+    @property
+    def _forecast(self):
+        return cloud_forecast_8h(
+            (self.coordinator.data or {}).get("hourly") or [],
+            dt_util.utcnow(),
+        )
+
+    @property
+    def native_value(self):
+        values = [row["cloud_coverage"] for row in self._forecast
+                  if row["cloud_coverage"] is not None]
+        return round(sum(values) / len(values)) if values else None
+
+    @property
+    def extra_state_attributes(self):
+        return {
+            "forecast": self._forecast,
+            "forecast_hours": 8,
+            "source": "Meteonomiqs",
+            "last_api_update": (
+                self.coordinator.last_successful_update.isoformat()
+                if self.coordinator.last_successful_update else None
+            ),
+        }

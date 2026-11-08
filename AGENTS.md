@@ -8,6 +8,10 @@ Read all relevant tests, RELEASE_NOTES.md, and CONTRIBUTING.md before changing f
 and recent pull requests to avoid reintroducing removed regressions.
 
 ## Non-negotiable behavior
+- Eight-hour cloud bridge: keep `sensor.meteonomiqs_cloud_forecast_8h`
+  forecast attribute as `[{datetime, end, cloud_coverage}]`, percent 0–100
+  or null. No extra weather fetch, no fallback to stale hourly[0]. Preserve
+  card resource registration and its Home Assistant theme compatibility.
 - HACS-compatible Home Assistant custom integration, domain `my_weather`.
 - Automatic discovery of **one to four** API keys from the fixed secret names
   `my_weather_api_1` ... `my_weather_api_4` in Home Assistant secrets.yaml.

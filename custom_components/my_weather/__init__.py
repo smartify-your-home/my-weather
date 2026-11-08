@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers.event import async_track_time_change
@@ -115,6 +116,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         async def handle_manual_update(call: ServiceCall):
             # Optional: support future multi-entry updates
             for data in hass.data.get(DOMAIN, {}).values():
+                if not isinstance(data, dict):
+                    continue
                 coord = data.get("coordinator")
                 if coord:
                     await coord.async_request_refresh()
@@ -126,6 +129,31 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
 
         _LOGGER.debug("MY_WEATHER: Service my_weather.update registered")
+
+    # Provide the standalone cloud chart without third-party Lovelace cards.
+    # The sensor is available even in headless Home Assistant installations.
+    if not hass.data[DOMAIN].get("_cloud_card_registered"):
+        try:
+            from homeassistant.components.frontend import add_extra_js_url
+            from homeassistant.components.http import StaticPathConfig
+            from homeassistant.loader import async_get_integration
+
+            if getattr(hass, "http", None) is not None:
+                card_path = Path(__file__).parent / "www" / "my-weather-cloud-8h-card.js"
+                await hass.http.async_register_static_paths([
+                    StaticPathConfig(
+                        "/my_weather/my-weather-cloud-8h-card.js",
+                        str(card_path),
+                        False,
+                    )
+                ])
+                version = (await async_get_integration(hass, DOMAIN)).version
+                add_extra_js_url(
+                    hass, f"/my_weather/my-weather-cloud-8h-card.js?v={version}"
+                )
+                hass.data[DOMAIN]["_cloud_card_registered"] = True
+        except (ImportError, OSError, RuntimeError):
+            _LOGGER.warning("MY_WEATHER: cloud chart registration unavailable", exc_info=True)
 
     # Forward platforms
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -147,7 +175,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         # Home Assistant owns ConfigEntry unloading; do not recursively unload it.
 
         # Remove service if this was the last entry
-        if not hass.data[DOMAIN]:
+        if not any(isinstance(value, dict) and "coordinator" in value
+                   for value in hass.data[DOMAIN].values()):
             hass.services.async_remove(DOMAIN, "update")
             _LOGGER.debug("MY_WEATHER: Service my_weather.update removed")
 

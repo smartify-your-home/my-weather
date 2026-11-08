@@ -12,9 +12,11 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 
 
 
-## Features## Eight-hour cloud forecast for Smartify Energy Pro
+## Features
 
-My-Weather now provides the **Meteonomiqs Cloud Forecast 8h** sensor. Its
+## Bewölkungsprognose bis 48 Stunden für SEP
+
+My-Weather provides the existing **Meteonomiqs Cloud Forecast 8h** sensor and a new **Meteonomiqs Cloud Forecast 48h** sensor. The new sensor uses the same Meteonomiqs API response (no additional API requests). Its
 state is the mean of available cloud percentages (0–100 %) in the current
 and next seven hourly slots. The `forecast` attribute is the machine-readable
 interface for Smartify Energy Pro (SEP):
@@ -26,7 +28,7 @@ forecast:
     cloud_coverage: 50
 ```
 
-There can be up to eight entries, each with UTC ISO-8601 timestamps; missing
+The legacy 8h sensor still exposes up to eight entries. The 48h sensor exposes **as many hourly slots as the Meteonomiqs response actually contains, up to 48**. Its attributes include `forecast_hours` (available slots), `valid_cloud_hours` (non-null cloud readings) and `max_forecast_hours: 48`. Entries use UTC ISO-8601 timestamps; missing
 cloud readings are `null`, never assumed to be 0 %. A stale cache
 produces an unavailable value and an empty list, not a misleading forecast.
 The series refreshes from the existing cached API response **without any
@@ -43,12 +45,12 @@ title: Bewölkung – nächste 8 Stunden
 ```
 
 The actual entity ID can differ; select it under Developer Tools → States.
-The chart shows eight hourly bars and uses the Home Assistant theme.
+The chart keeps 8h as its default. For a longer chart, configure `entity: sensor.meteonomiqs_cloud_forecast_48h`; the visible **8h / 24h / 48h** controls switch the display and make the longer bar chart horizontally scrollable. `hours: 24` or `hours: 48` can set the initial selection. Only received hours are displayed; missing slots are never invented. The chart uses the Home Assistant theme.
 When installing an update, reload the frontend to load the changed card.
 The `forecast` attribute is **cloud cover, not PV watt-hours**: SEP must use
 it alongside a solar irradiation/PV production model. Do not add this sensor
 to SEP's existing PV-forecast *energy* sensor list, because that list expects
-Wh, not %. Forecast reliability decreases with local fog, mist and rapidly
+Wh, not %. For SEP's extended self-calculated PV plan choose the **new 48h sensor** in SEP's cloud entity setting; an existing selection of the 8h sensor is deliberately not changed automatically. Forecast reliability decreases with local fog, mist and rapidly
 changing cloud cover.
 
 

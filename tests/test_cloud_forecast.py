@@ -1,7 +1,21 @@
 """Regression tests for 8h cloud bridge, including stale-cache handling."""
 import unittest
 from datetime import datetime, timedelta, timezone
-from custom_components.my_weather.cloud_forecast import cloud_forecast_8h
+import importlib.util
+from pathlib import Path
+import sys
+import types
+
+root = Path(__file__).resolve().parents[1] / "custom_components/my_weather"
+package = types.ModuleType("my_weather_test")
+package.__path__ = [str(root)]
+sys.modules["my_weather_test"] = package
+for name in ("timing", "cloud_forecast"):
+    spec = importlib.util.spec_from_file_location(f"my_weather_test.{name}", root / f"{name}.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+cloud_forecast_8h = sys.modules["my_weather_test.cloud_forecast"].cloud_forecast_8h
 
 
 class CloudForecastTests(unittest.TestCase):

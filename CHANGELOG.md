@@ -7,6 +7,8 @@ treated as releases.
 
 ## [Unreleased]
 
+## [0.1.3.5] – 2026-11-08
+
 - Add separate Meteonomiqs Cloud Forecast 48h sensor with actual available/valid hour counts, keeping the existing 8h sensor unchanged.
 - Existing cloud card supports selectable 8h/24h/48h views and scrolling long timelines; uses cached API response only.
 - SEP may select the new sensor for extended PV planning; missing/stale forecast hours remain unknown and no extra API fetch is made.

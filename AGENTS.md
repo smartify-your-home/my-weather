@@ -13,6 +13,14 @@ and recent pull requests to avoid reintroducing removed regressions.
   forecast attribute as `[{datetime, end, cloud_coverage}]`, percent 0–100
   or null. No extra weather fetch, no fallback to stale hourly[0]. Preserve
   card resource registration and its Home Assistant theme compatibility.
+- Cloud card loading (0.1.3.6): the card is registered as a Lovelace storage
+  resource (`card_resource.py`, after `homeassistant_started`, with retries).
+  Do NOT load it via `add_extra_js_url` by default: extra JS in the page head
+  can run before the frontend's custom-element polyfill and then causes a
+  permanent "Configuration error / Custom element doesn't exist". Extra JS is
+  only the fallback when no storage resource can be created (YAML mode).
+  Listeners calling `hass.async_*` must be `@callback`. Tests:
+  `tests/test_card_resource.py`.
 - HACS-compatible Home Assistant custom integration, domain `my_weather`.
 - Automatic discovery of **one to four** API keys from the fixed secret names
   `my_weather_api_1` ... `my_weather_api_4` in Home Assistant secrets.yaml.

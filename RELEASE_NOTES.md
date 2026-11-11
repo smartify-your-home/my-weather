@@ -1,11 +1,11 @@
-# my-weather 0.1.3.3 – HTTP 403 access-denied hotfix
+# my-weather 0.1.3.6 – cloud chart "Configuration error" fix
 
-Meteonomiqs may return HTTP 403 when a key lacks permission for the requested forecast endpoint. Previously the integration rotated only on 429, so a rejected first key prevented other configured keys from being tried.
+The bundled cloud chart (`custom:my-weather-cloud-8h-card`) could permanently show **Configuration error** (`Custom element doesn't exist`) until the page was reloaded. It was loaded only through the page head and could run before Home Assistant's custom-element polyfill.
 
-- Try each available secret key once on HTTP 401, 403 or 429.
-- Preserve existing forecast cache and publish no failed API responses.
-- Log slot numbers and HTTP codes, never secret values.
-- If **all** configured keys are denied, the problem must be resolved at the API provider or by correcting the keys; a code change cannot authorize a forbidden endpoint.
-- Keep the 0.1.3.2 unload hotfix and all earlier behavior.
+- The card is now registered as a Lovelace resource (`/my_weather/my-weather-cloud-8h-card.js?v=<version>`), created and updated automatically in storage mode.
+- Lovelace YAML mode: the previous frontend loading remains as fallback; the log names the URL for a manual `lovelace: resources:` entry (type: module).
+- No change to sensors, API requests, scheduling or key handling.
 
-**Verification:** automated tests verify Python syntax and configuration structure. The live provider's authorization response cannot be reproduced without account credentials.
+After updating: restart Home Assistant and reload the dashboard/app once.
+
+**Verification:** offline unit tests cover resource creation, update, de-duplication, retry and the YAML fallback. The change was not tested in a running Home Assistant installation.

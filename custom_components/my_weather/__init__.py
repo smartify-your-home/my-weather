@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from homeassistant.config_entries import ConfigEntry, ConfigEntryNotReady
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CoreState, HomeAssistant, ServiceCall, callback
 from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
@@ -18,11 +19,39 @@ from .const import (
     CONF_LANGUAGE,
     CONF_UPDATE_TIMES,
 )
+from .card_resource import CARD_PATH, async_register_card, card_url
 from .coordinator import MeteonomiqsDataUpdateCoordinator
 from .secrets import async_load_fixed_secret_keys, SecretKeyError
 from .timing import prefetch_hour_slot, publication_target
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _extra_js_fallback(hass: HomeAssistant, url: str) -> None:
+    """Lovelace YAML mode only: no storage resource can be created."""
+    from homeassistant.components.frontend import add_extra_js_url
+
+    add_extra_js_url(hass, url)
+
+
+@callback
+def _schedule_card_registration(hass: HomeAssistant, url: str) -> None:
+    """Register the card resource in the event loop once Home Assistant runs.
+
+    Listeners that call hass.async_* MUST be @callback (a plain def would run
+    in an executor thread). Retries happen inside one background task.
+    """
+    @callback
+    def _start(_event=None) -> None:
+        hass.async_create_background_task(
+            async_register_card(hass, url, extra_js_fallback=_extra_js_fallback),
+            f"{DOMAIN}_card_resource",
+        )
+
+    if hass.state is CoreState.running:
+        _start()
+    else:
+        hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _start)
 
 
 async def async_setup(hass: HomeAssistant, config: dict):
@@ -132,25 +161,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     # Provide the standalone cloud chart without third-party Lovelace cards.
     # The sensor is available even in headless Home Assistant installations.
+    # The card is registered as a Lovelace resource, NOT via add_extra_js_url
+    # (see card_resource.py for the reason); extra JS is only the YAML-mode fallback.
     if not hass.data[DOMAIN].get("_cloud_card_registered"):
         try:
-            from homeassistant.components.frontend import add_extra_js_url
             from homeassistant.components.http import StaticPathConfig
             from homeassistant.loader import async_get_integration
 
             if getattr(hass, "http", None) is not None:
                 card_path = Path(__file__).parent / "www" / "my-weather-cloud-8h-card.js"
                 await hass.http.async_register_static_paths([
-                    StaticPathConfig(
-                        "/my_weather/my-weather-cloud-8h-card.js",
-                        str(card_path),
-                        False,
-                    )
+                    StaticPathConfig(CARD_PATH, str(card_path), False)
                 ])
                 version = (await async_get_integration(hass, DOMAIN)).version
-                add_extra_js_url(
-                    hass, f"/my_weather/my-weather-cloud-8h-card.js?v={version}"
-                )
+                _schedule_card_registration(hass, card_url(str(version)))
                 hass.data[DOMAIN]["_cloud_card_registered"] = True
         except (ImportError, OSError, RuntimeError):
             _LOGGER.warning("MY_WEATHER: cloud chart registration unavailable", exc_info=True)

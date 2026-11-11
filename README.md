@@ -47,6 +47,10 @@ title: Bewölkung – nächste 8 Stunden
 The actual entity ID can differ; select it under Developer Tools → States.
 The chart keeps 8h as its default. For a longer chart, configure `entity: sensor.meteonomiqs_cloud_forecast_48h`; the visible **8h / 24h / 48h** controls switch the display and make the longer bar chart horizontally scrollable. `hours: 24` or `hours: 48` can set the initial selection. Only received hours are displayed; missing slots are never invented. The chart uses the Home Assistant theme.
 When installing an update, reload the frontend to load the changed card.
+Since 0.1.3.6 the card is registered as a Lovelace resource
+(`/my_weather/my-weather-cloud-8h-card.js?v=<version>`, storage mode, created
+automatically after Home Assistant has started). With Lovelace in YAML mode add
+this URL manually under `lovelace: resources:` (type: module).
 The `forecast` attribute is **cloud cover, not PV watt-hours**: SEP must use
 it alongside a solar irradiation/PV production model. Do not add this sensor
 to SEP's existing PV-forecast *energy* sensor list, because that list expects

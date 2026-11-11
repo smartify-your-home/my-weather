@@ -7,6 +7,20 @@ treated as releases.
 
 ## [Unreleased]
 
+## [0.1.3.6] – 2026-11-11
+
+- Fix: the bundled cloud chart could permanently show "Configuration error"
+  (`Custom element doesn't exist: my-weather-cloud-8h-card`) until the page was
+  reloaded. It was loaded only through `add_extra_js_url` in the page head and
+  could run before Home Assistant's custom-element polyfill.
+- The card is now registered as a Lovelace resource (storage mode, created and
+  updated automatically after Home Assistant has started, with retries). In
+  Lovelace YAML mode the previous frontend loading remains as fallback and the
+  log names the URL for a manual resource entry.
+- No change to sensors, API requests, scheduling or key handling.
+- Not verified in a running Home Assistant installation; offline tests cover
+  resource creation, update, de-duplication, retry and the YAML fallback.
+
 ## [0.1.3.5] – 2026-11-08
 
 - Add separate Meteonomiqs Cloud Forecast 48h sensor with actual available/valid hour counts, keeping the existing 8h sensor unchanged.

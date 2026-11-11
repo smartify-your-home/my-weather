@@ -1,3 +1,14 @@
+## ⚠️ BINDING: how the dashboard card is loaded (as of 2026-11-11) – do not revert
+
+Several people/agents work on the smartify repositories in parallel. This rule is identical in `smartify-energy-pro`, `smartify-flow-card`, `smartify-row-card` and `my-weather`. No agent or person may change or "restore" it without explicit approval of the repository owner – not even while merging/rebasing older branches.
+
+1. **The card is loaded exclusively as a Lovelace resource** (storage mode, `type: module`, created/updated automatically, own duplicates removed, resource storage loaded first).
+2. **No `add_extra_js_url` (and no `extra_module_url`) as the regular loading path.** Reason: extra JS sits in the `<head>` of index.html and races with the Home Assistant frontend's scoped-custom-element-registry polyfill. If the card defines its elements before the polyfill, `customElements.get()` is empty afterwards and `whenDefined()` never resolves → permanent **"Configuration error / Custom element doesn't exist"** until reload. Reproduced on HA 2026.10.4. An additional resource with the identical URL does not fix it (the module is not executed again). Extra JS is only allowed as a last resort when no storage resource can be created (Lovelace YAML mode), with a log message pointing to the manual entry.
+3. **Always version the resource URL** (`?v=<version>`). If the file is ever served with cache headers, every published JS change needs a new version.
+4. **Register only in the event loop** (`@callback`/`async def`), retry when Lovelace starts late; never modify or delete foreign resources.
+5. Keep `customElements.define` guarded by `customElements.get`; the card's `hass` setter must never throw (HA then replaces the card with "Configuration error").
+6. Before every push/merge check: `grep -rn "add_extra_js_url\|extra_module_url" custom_components/` shows at most the documented YAML fallback. The related tests must not be removed or weakened: `tests/test_card_resource.py`.
+
 # Agent instructions – my-weather
 
 ## Mandatory read before edits

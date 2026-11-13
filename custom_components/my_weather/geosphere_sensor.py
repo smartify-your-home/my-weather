@@ -65,11 +65,11 @@ class GeoSphereSolarSensor(CoordinatorEntity, SensorEntity):
         if self.kind == "ghi":
             row = current_row(self.coordinator.data, dt_util.utcnow())
             return round(row["ghi_w_m2"], 1) if row and row["ghi_w_m2"] is not None else None
-        if self.kind == "cloud_48h":
+        if self.kind == "cloud_60h":
             values = [row["cloud_coverage"] for row in self._forecast
                       if row["cloud_coverage"] is not None]
             return round(sum(values) / len(values), 1) if values else None
-        if self.kind == "energy_48h":
+        if self.kind == "energy_60h":
             return remaining_energy_kwh_m2(self._forecast, dt_util.utcnow())
         if self.kind == "model_run":
             return as_utc((self.coordinator.data or {}).get("model_run"))
@@ -90,7 +90,7 @@ class GeoSphereSolarSensor(CoordinatorEntity, SensorEntity):
             "license": "CC BY 4.0",
             "source_url": "https://data.hub.geosphere.at/dataset/nwp-v2-1h-1km",
         }
-        if self.kind in ("cloud_48h", "energy_48h"):
+        if self.kind in ("cloud_60h", "energy_60h"):
             attrs.update({
                 "forecast": forecast,
                 "forecast_hours": len(forecast),

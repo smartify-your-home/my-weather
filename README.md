@@ -12,6 +12,43 @@ Use https://github.com/mlamberts78/weather-chart-card (HACS) or original HA weat
 
 
 
+## Optional: GeoSphere Austria solar forecast (C-LAEF) – no API key
+
+Enable **GeoSphere Austria Solar Forecast** in **Settings → Devices & Services →
+my-weather → Configure**. This uses GeoSphere's public **direct** Data Hub
+timeseries API, not Open-Meteo. The setting is off by default for existing
+installations. GeoSphere updates **independently every 3 hours**, uses the
+integration's configured coordinates and does **not** consume Meteonomiqs
+API quota or modify its four selected publication times. The data source is
+free and CC BY 4.0, including commercial use with attribution.
+
+- **Dataset:** `nwp-v2-1h-1km`, deterministic C-LAEF AlpeAdria, 1-km grid,
+  hourly forecasts covering up to 60 hours, updated by GeoSphere every 3 hours.
+- **Native parameters:** `ssrd` (hourly-mean horizontal global solar radiation,
+  **W/m²**, *not* cumulative irradiance) and `tcc` (total cloud cover, %).
+- **Entities:** `GeoSphere Solar Radiation GHI` (W/m²), `GeoSphere Cloud Forecast
+  48h` (mean cloud %), `GeoSphere Solar Irradiation 48h` (remaining kWh/m²),
+  and a diagnostic `GeoSphere Model Run` timestamp. Entity IDs vary with HA.
+- **Forecast attributes** of both series sensors: `forecast` list with
+  `datetime`, `end`, `ghi_w_m2`, `cloud_coverage`, plus actual available-hour
+  counts, model run, provider and license. Missing values remain null.
+- **Service:** `my_weather.update_solar` forces a GeoSphere-only refresh.
+  `my_weather.update` still only calls Meteonomiqs.
+- **Caveat:** GHI is horizontal solar radiation, **not PV production** or
+  plane-of-array irradiance. Smartify Energy Pro must project it onto each
+  configured roof surface, apply losses/calibration and convert to Wh before
+  using it for PV planning. A 48h rolling view can be shorter than the
+  provider's nominal 60h forecast near the end of the model run.
+- **Failure behavior:** failed updates keep valid cached data. Expired forecast
+  hours must be treated as unavailable, never as sunny or 0 W/m².
+- **Source/attribution:** GeoSphere Austria Data Hub,
+  https://data.hub.geosphere.at/dataset/nwp-v2-1h-1km (CC BY 4.0).
+  The forecast API is marked prerelease by GeoSphere; monitor upstream changes.
+
+**Operational verification:** offline regression tests do not replace a
+live Home Assistant check of first setup/reload, DST transition, GeoSphere API
+schema, 3-hour refresh, 429/5xx errors, and sensor availability.
+
 ## Features
 
 ## Bewölkungsprognose bis 48 Stunden für SEP

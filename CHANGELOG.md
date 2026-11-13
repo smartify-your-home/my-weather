@@ -7,6 +7,14 @@ treated as releases.
 
 ## [Unreleased]
 
+## [0.1.3.7] – pending validation
+
+- Optional direct GeoSphere Austria C-LAEF (`nwp-v2-1h-1km`) solar forecast without API key. Independent 3-hour update and local cache, no Meteonomiqs quota impact.
+- New GeoSphere global radiation, cloud 48h, irradiation 48h and model-run sensors. Preserve missing forecast values rather than inventing zeros.
+- Separate `my_weather.update_solar` service; no change to existing Meteonomiqs scheduling, card registration or sensors.
+- New parser tests for solar units, time alignment, missing values and expired forecasts. Runtime Home Assistant/API check still required.
+
+
 ## [0.1.3.6] – 2026-11-11
 
 - Fix: the bundled cloud chart could permanently show "Configuration error"

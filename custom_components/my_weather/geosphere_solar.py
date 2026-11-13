@@ -44,10 +44,12 @@ class GeoSphereSolarCoordinator(DataUpdateCoordinator):
         if self.data:
             self.async_update_listeners()
 
-    def async_shutdown(self):
+    async def async_shutdown(self):
+        """Release timer and coordinator refresh scheduling on unload."""
         if self._unsub_tick is not None:
             self._unsub_tick()
             self._unsub_tick = None
+        await super().async_shutdown()
 
     async def async_initialize(self):
         """Reuse a recent snapshot across restarts without an unnecessary fetch."""

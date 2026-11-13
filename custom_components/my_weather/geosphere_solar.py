@@ -7,6 +7,8 @@ import logging
 
 from aiohttp import ClientTimeout
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.core import callback
 from homeassistant.helpers.storage import Store
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
@@ -34,6 +36,18 @@ class GeoSphereSolarCoordinator(DataUpdateCoordinator):
         self.longitude = entry.data["longitude"]
         self.last_successful_update = None
         self._store = Store(hass, 1, f"my_weather_geosphere_{entry.entry_id}")
+        self._unsub_tick = async_track_time_interval(hass, self._on_time_tick, timedelta(minutes=1))
+
+    @callback
+    def _on_time_tick(self, now):
+        """Advance current forecast hour without additional API requests."""
+        if self.data:
+            self.async_set_updated_data(self.data)
+
+    def async_shutdown(self):
+        if self._unsub_tick is not None:
+            self._unsub_tick()
+            self._unsub_tick = None
 
     async def async_initialize(self):
         """Reuse a recent snapshot across restarts without an unnecessary fetch."""

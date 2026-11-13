@@ -5,3 +5,9 @@ update:
     The request uses API quota and is independent of configured full-hour
     scheduled updates. Scheduled updates fetch five minutes before the selected
     hour and publish the whole forecast at the hour.
+
+update_solar:
+  name: Update GeoSphere solar forecast now
+  description: >-
+    Fetch the optional GeoSphere Austria C-LAEF forecast directly, without an
+    API key. This does not call Meteonomiqs or consume its API quota.

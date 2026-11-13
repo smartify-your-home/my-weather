@@ -26,12 +26,13 @@
     "step": {
       "init": {
         "title": "Aggiornamenti meteo automatici",
-        "description": "Seleziona fino a quattro ore intere (HH:00). Richiesta cinque minuti prima, pubblicazione allo scoccare dell'ora. I campi vuoti disattivano l'orario. Chiavi lette da secrets.yaml.",
+        "description": "Seleziona fino a quattro ore intere (HH:00). Richiesta cinque minuti prima, pubblicazione allo scoccare dell'ora. I campi vuoti disattivano l'orario. Chiavi lette da secrets.yaml. GeoSphere è facoltativo e si aggiorna ogni 3 ore senza usare la quota Meteonomiqs.",
         "data": {
           "update_time_1": "Pubblicazione 1 (HH:00)",
           "update_time_2": "Pubblicazione 2 (HH:00)",
           "update_time_3": "Pubblicazione 3 (HH:00)",
-          "update_time_4": "Pubblicazione 4 (HH:00)"
+          "update_time_4": "Pubblicazione 4 (HH:00)",
+          "geosphere_solar_enabled": "Previsione solare GeoSphere Austria (gratuita, API diretta, senza chiave)"
         }
       }
     },

@@ -1,4 +1,4 @@
-## ⚠️ BINDING: how the dashboard card is loaded (as of 2026-11-11) – do not revert
+## GeoSphere direct solar bridge – release checks (0.1.3.7)\n- `cloud_60h` and `energy_60h` must have a **state** and `forecast` attributes; never keep stale `cloud_48h`/`energy_48h` switch cases after renaming. The Meteonomiqs 48h sensor must remain 48h.\n- Hourly UI refresh must call `DataUpdateCoordinator.async_update_listeners()`, **not** `async_set_updated_data()`: the latter restarts the 3-hour polling timer every minute, preventing future GeoSphere fetches.\n- GeoSphere coordinator shutdown is `async` and must be awaited during HA unload, including the inherited polling scheduler cleanup. Tests: `tests/test_geosphere_sensor.py` and `tests/test_geosphere_data.py`.\n\n## ⚠️ BINDING: how the dashboard card is loaded (as of 2026-11-11) – do not revert
 
 Several people/agents work on the smartify repositories in parallel. This rule is identical in `smartify-energy-pro`, `smartify-flow-card`, `smartify-row-card` and `my-weather`. No agent or person may change or "restore" it without explicit approval of the repository owner – not even while merging/rebasing older branches.
 

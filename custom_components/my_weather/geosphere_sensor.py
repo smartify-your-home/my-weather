@@ -36,12 +36,12 @@ class GeoSphereSolarSensor(CoordinatorEntity, SensorEntity):
             self._attr_icon = "mdi:white-balance-sunny"
             self._attr_native_unit_of_measurement = "W/m²"
             self._attr_state_class = SensorStateClass.MEASUREMENT
-        elif kind == "cloud_48h":
-            self._attr_name = "GeoSphere Cloud Forecast 48h"
+        elif kind == "cloud_60h":
+            self._attr_name = "GeoSphere Cloud Forecast 60h"
             self._attr_icon = "mdi:weather-partly-cloudy"
             self._attr_native_unit_of_measurement = PERCENTAGE
-        elif kind == "energy_48h":
-            self._attr_name = "GeoSphere Solar Irradiation 48h"
+        elif kind == "energy_60h":
+            self._attr_name = "GeoSphere Solar Irradiation 60h"
             self._attr_icon = "mdi:solar-power"
             self._attr_native_unit_of_measurement = "kWh/m²"
         elif kind == "model_run":
@@ -52,7 +52,7 @@ class GeoSphereSolarSensor(CoordinatorEntity, SensorEntity):
 
     @property
     def _forecast(self):
-        return upcoming_rows(self.coordinator.data, dt_util.utcnow(), 48)
+        return upcoming_rows(self.coordinator.data, dt_util.utcnow(), 60)
 
     @property
     def available(self):
@@ -100,7 +100,7 @@ class GeoSphereSolarSensor(CoordinatorEntity, SensorEntity):
                 "valid_solar_hours": sum(
                     row["ghi_w_m2"] is not None for row in forecast
                 ),
-                "max_forecast_hours": 48,
+                "max_forecast_hours": 60,
                 "irradiance_unit": "W/m²",
                 "energy_unit": "kWh/m²",
             })

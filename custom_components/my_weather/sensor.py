@@ -120,7 +120,7 @@ async def async_setup_entry(
 
     solar = hass.data[DOMAIN][entry.entry_id].get("solar_coordinator")
     if solar is not None:
-        for kind in ("ghi", "cloud_48h", "energy_48h", "model_run"):
+        for kind in ("ghi", "cloud_60h", "energy_60h", "model_run"):
             entities.append(GeoSphereSolarSensor(solar, entry, kind))
 
     async_add_entities(entities)

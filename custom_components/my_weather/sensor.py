@@ -25,6 +25,7 @@ from homeassistant.util import dt as dt_util
 from .const import DOMAIN
 from .weather import map_condition_from_state
 from .cloud_forecast import cloud_forecast, cloud_forecast_8h
+from .geosphere_sensor import GeoSphereSolarSensor
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -116,6 +117,11 @@ async def async_setup_entry(
 
     for i in range(8):
         entities.append(MeteonomiqsHourlyForecastSensor(coord, entry, i))
+
+    solar = hass.data[DOMAIN][entry.entry_id].get("solar_coordinator")
+    if solar is not None:
+        for kind in ("ghi", "cloud_48h", "energy_48h", "model_run"):
+            entities.append(GeoSphereSolarSensor(solar, entry, kind))
 
     async_add_entities(entities)
 

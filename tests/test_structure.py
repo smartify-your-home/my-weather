@@ -13,7 +13,7 @@ class IntegrationStructureTests(unittest.TestCase):
         base = json.loads((COMPONENT / "strings.json").read_text(encoding="utf-8"))
         base_user = set(base["config"]["step"]["user"]["data"])
         base_opts = set(base["options"]["step"]["init"]["data"])
-        self.assertEqual(base_opts, {f"update_time_{i}" for i in range(1, 5)})
+        self.assertEqual(base_opts, {f"update_time_{i}" for i in range(1, 5)} | {"geosphere_solar_enabled"})
         self.assertFalse(any("api_secret_" in field for field in base_user))
         for language in ("de", "en", "fr", "it", "es"):
             with self.subTest(language=language):

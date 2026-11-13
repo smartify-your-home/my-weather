@@ -27,7 +27,7 @@ free and CC BY 4.0, including commercial use with attribution.
 - **Native parameters:** `ssrd` (hourly-mean horizontal global solar radiation,
   **W/m²**, *not* cumulative irradiance) and `tcc` (total cloud cover, %).
 - **Entities:** `GeoSphere Solar Radiation GHI` (W/m²), `GeoSphere Cloud Forecast
-  48h` (mean cloud %), `GeoSphere Solar Irradiation 60h` (remaining kWh/m²),
+  60h` (mean cloud %), `GeoSphere Solar Irradiation 60h` (remaining kWh/m²),
   and a diagnostic `GeoSphere Model Run` timestamp. Entity IDs vary with HA.
 - **Forecast attributes** of both series sensors: `forecast` list with
   `datetime`, `end`, `ghi_w_m2`, `cloud_coverage`, plus actual available-hour
@@ -53,7 +53,7 @@ schema, 3-hour refresh, 429/5xx errors, and sensor availability.
 
 ## Bewölkungsprognose bis 48 Stunden für SEP
 
-My-Weather provides the existing **Meteonomiqs Cloud Forecast 8h** sensor and a new **Meteonomiqs Cloud Forecast 60h** sensor. The new sensor uses the same Meteonomiqs API response (no additional API requests). Its
+My-Weather provides the existing **Meteonomiqs Cloud Forecast 8h** sensor and a new **Meteonomiqs Cloud Forecast 48h** sensor. The new sensor uses the same Meteonomiqs API response (no additional API requests). Its
 state is the mean of available cloud percentages (0–100 %) in the current
 and next seven hourly slots. The `forecast` attribute is the machine-readable
 interface for Smartify Energy Pro (SEP):

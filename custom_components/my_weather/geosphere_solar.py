@@ -42,7 +42,7 @@ class GeoSphereSolarCoordinator(DataUpdateCoordinator):
     def _on_time_tick(self, now):
         """Advance current forecast hour without additional API requests."""
         if self.data:
-            self.async_set_updated_data(self.data)
+            self.async_update_listeners()
 
     def async_shutdown(self):
         if self._unsub_tick is not None:

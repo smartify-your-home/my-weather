@@ -18,9 +18,12 @@ from .const import (
     CONF_LONGITUDE,
     CONF_LANGUAGE,
     CONF_UPDATE_TIMES,
+    CONF_GEOSPHERE_SOLAR,
+    DEFAULT_GEOSPHERE_SOLAR,
 )
 from .card_resource import CARD_PATH, async_register_card, card_url
 from .coordinator import MeteonomiqsDataUpdateCoordinator
+from .geosphere_solar import GeoSphereSolarCoordinator
 from .secrets import async_load_fixed_secret_keys, SecretKeyError
 from .timing import prefetch_hour_slot, publication_target
 
@@ -131,8 +134,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
             hass, publish_on_hour, hour=hour, minute=0, second=0,
         ))
 
+    solar_coordinator = None
+    if entry.options.get(CONF_GEOSPHERE_SOLAR, DEFAULT_GEOSPHERE_SOLAR):
+        solar_coordinator = GeoSphereSolarCoordinator(hass, entry)
+        await solar_coordinator.async_initialize()
+
     hass.data[DOMAIN][entry.entry_id] = {
         "coordinator": coordinator,
+        "solar_coordinator": solar_coordinator,
         "unsub_schedules": unsub_schedules,
     }
     entry.async_on_unload(entry.add_update_listener(async_update_options))
@@ -158,6 +167,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
         )
 
         _LOGGER.debug("MY_WEATHER: Service my_weather.update registered")
+
+    # GeoSphere manual refresh is independent of Meteonomiqs key quotas.
+    if not hass.services.has_service(DOMAIN, "update_solar"):
+
+        async def handle_solar_update(call: ServiceCall):
+            for data in hass.data.get(DOMAIN, {}).values():
+                if isinstance(data, dict) and data.get("solar_coordinator"):
+                    await data["solar_coordinator"].async_request_refresh()
+
+        hass.services.async_register(DOMAIN, "update_solar", handle_solar_update)
 
     # Provide the standalone cloud chart without third-party Lovelace cards.
     # The sensor is available even in headless Home Assistant installations.
@@ -196,12 +215,16 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
             unsub()
         if coordinator := data.get("coordinator"):
             coordinator.async_shutdown()
+        if solar := data.get("solar_coordinator"):
+            await solar.async_shutdown()
         # Home Assistant owns ConfigEntry unloading; do not recursively unload it.
 
         # Remove service if this was the last entry
         if not any(isinstance(value, dict) and "coordinator" in value
                    for value in hass.data[DOMAIN].values()):
             hass.services.async_remove(DOMAIN, "update")
+            if hass.services.has_service(DOMAIN, "update_solar"):
+                hass.services.async_remove(DOMAIN, "update_solar")
             _LOGGER.debug("MY_WEATHER: Service my_weather.update removed")
 
     return unload_ok

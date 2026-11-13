@@ -26,12 +26,13 @@
     "step": {
       "init": {
         "title": "Actualizaciones meteorológicas automáticas",
-        "description": "Selecciona hasta cuatro horas exactas (HH:00). Consulta cinco minutos antes y publica en punto. Los campos vacíos desactivan ese horario. Las claves se leen de secrets.yaml.",
+        "description": "Selecciona hasta cuatro horas exactas (HH:00). Consulta cinco minutos antes y publica en punto. Los campos vacíos desactivan ese horario. Las claves se leen de secrets.yaml. GeoSphere es opcional y se actualiza cada 3 horas sin consumir la cuota Meteonomiqs.",
         "data": {
           "update_time_1": "Publicación 1 (HH:00)",
           "update_time_2": "Publicación 2 (HH:00)",
           "update_time_3": "Publicación 3 (HH:00)",
-          "update_time_4": "Publicación 4 (HH:00)"
+          "update_time_4": "Publicación 4 (HH:00)",
+          "geosphere_solar_enabled": "Previsión solar GeoSphere Austria (gratis, API directa, sin clave)"
         }
       }
     },

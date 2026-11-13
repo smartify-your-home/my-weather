@@ -12,6 +12,8 @@ CONF_LANGUAGE = "language"
 DEFAULT_LANGUAGE = "de"
 CONF_UPDATE_TIMES = "update_times"
 DEFAULT_UPDATE_TIMES = []
+CONF_GEOSPHERE_SOLAR = "geosphere_solar_enabled"
+DEFAULT_GEOSPHERE_SOLAR = False
 
 PLATFORMS = [
     Platform.WEATHER,

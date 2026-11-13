@@ -26,12 +26,13 @@
     "step": {
       "init": {
         "title": "Automatische Wetteraktualisierung",
-        "description": "Bis zu vier volle Stunden (HH:00). Die Abfrage erfolgt fünf Minuten vorher, die Veröffentlichung zur vollen Stunde. Leere Felder deaktivieren einen Termin. Die API-Schlüssel werden automatisch aus secrets.yaml gelesen.",
+        "description": "Bis zu vier volle Stunden (HH:00). Die Abfrage erfolgt fünf Minuten vorher, die Veröffentlichung zur vollen Stunde. Leere Felder deaktivieren einen Termin. Die API-Schlüssel werden automatisch aus secrets.yaml gelesen. GeoSphere ist optional und ruft alle 3 Stunden unabhängig Daten ab. Meteonomiqs-Zeitplan und API-Kontingent bleiben unverändert.",
         "data": {
           "update_time_1": "Veröffentlichung 1 (HH:00)",
           "update_time_2": "Veröffentlichung 2 (HH:00)",
           "update_time_3": "Veröffentlichung 3 (HH:00)",
-          "update_time_4": "Veröffentlichung 4 (HH:00)"
+          "update_time_4": "Veröffentlichung 4 (HH:00)",
+          "geosphere_solar_enabled": "GeoSphere Austria Solarprognose (kostenlos, direkte API, ohne Schlüssel)"
         }
       }
     },

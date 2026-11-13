@@ -18,6 +18,8 @@ from .const import (
     CONF_LANGUAGE,
     DEFAULT_LANGUAGE,
     CONF_UPDATE_TIMES,
+    CONF_GEOSPHERE_SOLAR,
+    DEFAULT_GEOSPHERE_SOLAR,
 )
 
 CONF_API_KEY_1 = "api_key_1"
@@ -140,6 +142,7 @@ class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
             if not errors:
                 options = dict(self.config_entry.options)
                 options[CONF_UPDATE_TIMES] = sorted(times)
+                options[CONF_GEOSPHERE_SOLAR] = bool(user_input.get(CONF_GEOSPHERE_SOLAR, False))
                 return self.async_create_entry(title="", data=options)
 
         saved = self.config_entry.options.get(CONF_UPDATE_TIMES, [])
@@ -147,6 +150,11 @@ class MeteonomiqsOptionsFlow(config_entries.OptionsFlow):
         for index in range(1, 5):
             default = saved[index - 1] if index <= len(saved) else ""
             fields[vol.Optional(f"update_time_{index}", default=default)] = _TEXT_SELECTOR
+
+        fields[vol.Optional(
+            CONF_GEOSPHERE_SOLAR,
+            default=self.config_entry.options.get(CONF_GEOSPHERE_SOLAR, DEFAULT_GEOSPHERE_SOLAR),
+        )] = selector({"boolean": {}})
 
         return self.async_show_form(
             step_id="init",

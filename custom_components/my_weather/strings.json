@@ -26,12 +26,13 @@
     "step": {
       "init": {
         "title": "Automatic weather updates",
-        "description": "Select up to four full hours (HH:00). Fetch five minutes before each hour and publish at the hour. Empty fields disable a slot. API keys are read automatically from secrets.yaml.",
+        "description": "Select up to four full hours (HH:00). Fetch five minutes before each hour and publish at the hour. Empty fields disable a slot. API keys are read automatically from secrets.yaml. GeoSphere is optional and fetches independently every 3 hours. Meteonomiqs slots and quota remain unchanged.",
         "data": {
           "update_time_1": "Publication 1 (HH:00)",
           "update_time_2": "Publication 2 (HH:00)",
           "update_time_3": "Publication 3 (HH:00)",
-          "update_time_4": "Publication 4 (HH:00)"
+          "update_time_4": "Publication 4 (HH:00)",
+          "geosphere_solar_enabled": "GeoSphere Austria solar forecast (free, direct API, no key)"
         }
       }
     },
